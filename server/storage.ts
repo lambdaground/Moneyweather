@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type AssetData, type MarketDataResponse } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { generateMarketData } from "./marketData";
+import { fetchRealMarketData } from "./realMarketData";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -47,24 +47,32 @@ export class MemStorage implements IStorage {
       return this.cachedMarketData;
     }
 
-    // Generate new data
-    return this.generateAndCacheData();
+    // Fetch fresh data from real APIs
+    return this.fetchAndCacheData();
   }
 
   async refreshMarketData(): Promise<MarketDataResponse> {
     // Force regeneration - bypass cache
-    return this.generateAndCacheData();
+    return this.fetchAndCacheData();
   }
 
-  private generateAndCacheData(): MarketDataResponse {
-    const assets = generateMarketData();
-    this.cachedMarketData = {
-      assets,
-      generatedAt: new Date().toISOString(),
-    };
-    this.lastGenerated = Date.now();
-
-    return this.cachedMarketData;
+  private async fetchAndCacheData(): Promise<MarketDataResponse> {
+    try {
+      const assets = await fetchRealMarketData();
+      this.cachedMarketData = {
+        assets,
+        generatedAt: new Date().toISOString(),
+      };
+      this.lastGenerated = Date.now();
+      return this.cachedMarketData;
+    } catch (error) {
+      console.error('Error fetching real market data:', error);
+      // If we have cached data, return it even if expired
+      if (this.cachedMarketData) {
+        return this.cachedMarketData;
+      }
+      throw error;
+    }
   }
 }
 
