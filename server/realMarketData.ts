@@ -22,6 +22,8 @@ async function fetchWithTimeout(url: string, timeout = 5000): Promise<Response> 
   }
 }
 
+let previousUsdKrw: number | null = null;
+
 async function fetchUsdKrw(): Promise<{ price: number; change: number } | null> {
   try {
     const response = await fetchWithTimeout(
@@ -33,8 +35,11 @@ async function fetchUsdKrw(): Promise<{ price: number; change: number } | null> 
     const price = data.rates?.KRW;
     if (!price) return null;
     
-    const basePrice = 1380;
-    const change = ((price - basePrice) / basePrice) * 100;
+    let change = 0;
+    if (previousUsdKrw !== null) {
+      change = ((price - previousUsdKrw) / previousUsdKrw) * 100;
+    }
+    previousUsdKrw = price;
     
     return { price, change: parseFloat(change.toFixed(2)) };
   } catch (error) {
