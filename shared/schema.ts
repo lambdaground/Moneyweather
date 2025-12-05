@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, real, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,3 +16,39 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type WeatherStatus = 'sunny' | 'rainy' | 'cloudy' | 'thunder';
+
+export type AssetType = 'usdkrw' | 'kospi' | 'gold' | 'bitcoin' | 'bonds';
+
+export interface AssetData {
+  id: AssetType;
+  name: string;
+  price: number;
+  priceDisplay: string;
+  change: number;
+  status: WeatherStatus;
+  message: string;
+  advice: string;
+}
+
+export interface MarketDataResponse {
+  assets: AssetData[];
+  generatedAt: string;
+}
+
+export const assetDataSchema = z.object({
+  id: z.enum(['usdkrw', 'kospi', 'gold', 'bitcoin', 'bonds']),
+  name: z.string(),
+  price: z.number(),
+  priceDisplay: z.string(),
+  change: z.number(),
+  status: z.enum(['sunny', 'rainy', 'cloudy', 'thunder']),
+  message: z.string(),
+  advice: z.string(),
+});
+
+export const marketDataResponseSchema = z.object({
+  assets: z.array(assetDataSchema),
+  generatedAt: z.string(),
+});
