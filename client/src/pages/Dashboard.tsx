@@ -5,17 +5,20 @@ import WeatherCard from '@/components/WeatherCard';
 import DetailModal from '@/components/DetailModal';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
+import WeatherFilter from '@/components/WeatherFilter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import type { AssetData, MarketDataResponse, AssetCategory } from '@/lib/marketData';
+import type { AssetData, MarketDataResponse, AssetCategory, WeatherStatus } from '@/lib/marketData';
 import { formatTime, formatTimeAgo } from '@/lib/marketData';
+
+const allCats: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
+const allWeathers: WeatherStatus[] = ['sunny', 'cloudy', 'rainy', 'thunder'];
 
 export default function Dashboard() {
   const [selectedAsset, setSelectedAsset] = useState<AssetData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>([
-    'currency', 'index', 'commodity', 'crypto', 'bonds'
-  ]);
+  const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>(allCats);
+  const [selectedWeathers, setSelectedWeathers] = useState<WeatherStatus[]>(allWeathers);
   const [timeAgo, setTimeAgo] = useState('');
 
   const { data, isLoading, isError } = useQuery<MarketDataResponse>({
@@ -34,7 +37,10 @@ export default function Dashboard() {
   });
 
   const allAssets = data?.assets || [];
-  const assets = allAssets.filter(asset => selectedCategories.includes(asset.category));
+  const assets = allAssets.filter(asset => 
+    selectedCategories.includes(asset.category) && 
+    selectedWeathers.includes(asset.status)
+  );
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -64,23 +70,32 @@ export default function Dashboard() {
     localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
   };
 
-  const allCats: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
-  const allSelected = selectedCategories.length === allCats.length;
-  
   const handleToggleCategory = (category: AssetCategory) => {
     setSelectedCategories(prev => {
       const isOnlyThisSelected = prev.length === 1 && prev[0] === category;
-      
       if (isOnlyThisSelected) {
         return allCats;
       }
-      
       return [category];
     });
   };
   
-  const handleSelectAll = () => {
+  const handleSelectAllCategories = () => {
     setSelectedCategories(allCats);
+  };
+
+  const handleToggleWeather = (weather: WeatherStatus) => {
+    setSelectedWeathers(prev => {
+      const isOnlyThisSelected = prev.length === 1 && prev[0] === weather;
+      if (isOnlyThisSelected) {
+        return allWeathers;
+      }
+      return [weather];
+    });
+  };
+
+  const handleSelectAllWeathers = () => {
+    setSelectedWeathers(allWeathers);
   };
 
   const handleCardClick = (asset: AssetData) => {
@@ -98,15 +113,31 @@ export default function Dashboard() {
   };
 
   const getSummaryMessage = () => {
-    if (assets.length === 0) return '';
+    if (allAssets.length === 0) return '';
     
-    const sunnyCount = assets.filter(a => a.status === 'sunny').length;
-    const thunderCount = assets.filter(a => a.status === 'thunder').length;
+    const sunnyCount = allAssets.filter(a => a.status === 'sunny').length;
+    const thunderCount = allAssets.filter(a => a.status === 'thunder').length;
     
     if (thunderCount >= 2) return '오늘은 시장이 불안정해요. 신중하게 결정하세요!';
     if (sunnyCount >= 3) return '오늘은 좋은 날이에요! 투자하기 괜찮은 분위기네요.';
     if (sunnyCount === 0) return '오늘은 조용히 관망하는 게 좋겠어요.';
     return '시장이 혼조세예요. 관심 있는 자산을 살펴보세요!';
+  };
+
+  const getEmptyMessage = () => {
+    const catAllSelected = selectedCategories.length === allCats.length;
+    const weatherAllSelected = selectedWeathers.length === allWeathers.length;
+    
+    if (!catAllSelected && !weatherAllSelected) {
+      return '선택한 카테고리와 날씨에 해당하는 자산이 없어요.';
+    }
+    if (!catAllSelected) {
+      return '선택한 카테고리에 해당하는 자산이 없어요.';
+    }
+    if (!weatherAllSelected) {
+      return '선택한 날씨 상태의 자산이 없어요.';
+    }
+    return '표시할 자산이 없어요.';
   };
 
   return (
@@ -118,7 +149,7 @@ export default function Dashboard() {
         isRefreshing={refreshMutation.isPending}
       />
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 space-y-4">
         {data?.generatedAt && (
           <div 
             data-testid="text-timestamp"
@@ -131,16 +162,32 @@ export default function Dashboard() {
           </div>
         )}
 
-        <CategoryFilter
-          selectedCategories={selectedCategories}
-          onToggleCategory={handleToggleCategory}
-          onSelectAll={handleSelectAll}
-        />
+        <div className="space-y-3">
+          <div className="text-center">
+            <span className="text-xs text-muted-foreground">카테고리</span>
+          </div>
+          <CategoryFilter
+            selectedCategories={selectedCategories}
+            onToggleCategory={handleToggleCategory}
+            onSelectAll={handleSelectAllCategories}
+          />
+        </div>
 
-        {assets.length > 0 && (
+        <div className="space-y-3">
+          <div className="text-center">
+            <span className="text-xs text-muted-foreground">날씨 상태</span>
+          </div>
+          <WeatherFilter
+            selectedWeathers={selectedWeathers}
+            onToggleWeather={handleToggleWeather}
+            onSelectAll={handleSelectAllWeathers}
+          />
+        </div>
+
+        {allAssets.length > 0 && (
           <p 
             data-testid="text-summary"
-            className="text-center text-muted-foreground"
+            className="text-center text-muted-foreground pt-2"
           >
             {getSummaryMessage()}
           </p>
@@ -177,7 +224,7 @@ export default function Dashboard() {
 
         {!isLoading && !isError && assets.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">표시할 자산이 없어요. 카테고리를 선택해주세요.</p>
+            <p className="text-muted-foreground">{getEmptyMessage()}</p>
           </div>
         )}
       </main>
