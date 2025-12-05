@@ -27,11 +27,10 @@ export default function CategoryFilter({ selectedCategories, onToggleCategory, o
       <Button
         data-testid="button-filter-all"
         variant={allSelected ? "default" : "outline"}
-        size="sm"
         onClick={onSelectAll}
-        className="gap-1.5"
+        className="gap-2 text-base"
       >
-        <LayoutGrid className="w-4 h-4" />
+        <LayoutGrid className="w-5 h-5" />
         <span>전체</span>
       </Button>
       
@@ -45,11 +44,10 @@ export default function CategoryFilter({ selectedCategories, onToggleCategory, o
             key={category}
             data-testid={`button-filter-${category}`}
             variant={isSelected ? "default" : "outline"}
-            size="sm"
             onClick={() => onToggleCategory(category)}
-            className="gap-1.5"
+            className="gap-2 text-base"
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-5 h-5" />
             <span>{config.name}</span>
           </Button>
         );

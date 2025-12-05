@@ -34,6 +34,10 @@ export interface AssetData {
   category: AssetCategory;
   price: number;
   priceDisplay: string;
+  buyPrice?: number;
+  buyPriceDisplay?: string;
+  sellPrice?: number;
+  sellPriceDisplay?: string;
   change: number;
   changePoints: number;
   changePointsDisplay: string;
@@ -64,6 +68,10 @@ export const assetDataSchema = z.object({
   category: z.enum(['currency', 'index', 'commodity', 'crypto', 'bonds']),
   price: z.number(),
   priceDisplay: z.string(),
+  buyPrice: z.number().optional(),
+  buyPriceDisplay: z.string().optional(),
+  sellPrice: z.number().optional(),
+  sellPriceDisplay: z.string().optional(),
   change: z.number(),
   changePoints: z.number(),
   changePointsDisplay: z.string(),

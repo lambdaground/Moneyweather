@@ -60,6 +60,16 @@ export default function DetailModal({ asset, open, onClose }: DetailModalProps) 
             >
               {asset.priceDisplay}
             </span>
+            {asset.buyPriceDisplay && asset.sellPriceDisplay && (
+              <div className="flex gap-4 text-base text-muted-foreground">
+                <span data-testid="text-modal-buy-price">
+                  살 때 <span className="font-semibold text-red-600 dark:text-red-400">{asset.sellPriceDisplay}</span>
+                </span>
+                <span data-testid="text-modal-sell-price">
+                  팔 때 <span className="font-semibold text-green-600 dark:text-green-400">{asset.buyPriceDisplay}</span>
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 data-testid="badge-modal-change"

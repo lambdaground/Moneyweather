@@ -25,11 +25,10 @@ export default function WeatherFilter({ selectedWeathers, onToggleWeather, onSel
       <Button
         data-testid="button-weather-all"
         variant={allSelected ? "default" : "outline"}
-        size="sm"
         onClick={onSelectAll}
-        className="gap-1.5"
+        className="gap-2 text-base"
       >
-        <LayoutGrid className="w-4 h-4" />
+        <LayoutGrid className="w-5 h-5" />
         <span>전체</span>
       </Button>
       
@@ -43,11 +42,10 @@ export default function WeatherFilter({ selectedWeathers, onToggleWeather, onSel
             key={weather}
             data-testid={`button-weather-${weather}`}
             variant={isSelected ? "default" : "outline"}
-            size="sm"
             onClick={() => onToggleWeather(weather)}
-            className="gap-1.5"
+            className="gap-2 text-base"
           >
-            <Icon className={`w-4 h-4 ${isSelected ? '' : config.color}`} />
+            <Icon className={`w-5 h-5 ${isSelected ? '' : config.color}`} />
             <span>{config.name}</span>
           </Button>
         );

@@ -15,6 +15,10 @@ export interface AssetData {
   category: AssetCategory;
   price: number;
   priceDisplay: string;
+  buyPrice?: number;
+  buyPriceDisplay?: string;
+  sellPrice?: number;
+  sellPriceDisplay?: string;
   change: number;
   changePoints: number;
   changePointsDisplay: string;

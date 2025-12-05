@@ -71,6 +71,16 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
             >
               {asset.priceDisplay}
             </p>
+            {asset.buyPriceDisplay && asset.sellPriceDisplay && (
+              <div className="flex gap-3 mt-1 text-sm text-muted-foreground">
+                <span data-testid={`text-buy-price-${asset.id}`}>
+                  살 때 <span className="font-medium text-red-600 dark:text-red-400">{asset.sellPriceDisplay}</span>
+                </span>
+                <span data-testid={`text-sell-price-${asset.id}`}>
+                  팔 때 <span className="font-medium text-green-600 dark:text-green-400">{asset.buyPriceDisplay}</span>
+                </span>
+              </div>
+            )}
           </div>
           <div className={`p-2 rounded-lg ${styles.iconBg}`}>
             <WeatherIcon status={asset.status} className="w-8 h-8" />

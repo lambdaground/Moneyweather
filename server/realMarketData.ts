@@ -397,6 +397,8 @@ interface AssetConfig {
   category: AssetCategory;
   getStatus: (price: number, change: number) => WeatherStatus;
   formatPrice: (price: number) => string;
+  formatBuyPrice?: (price: number) => string;
+  formatSellPrice?: (price: number) => string;
   messages: Record<WeatherStatus, string>;
   advice: string;
 }
@@ -510,27 +512,49 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '금',
     category: 'commodity',
     getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => `${Math.round(p * cachedUsdKrw).toLocaleString('ko-KR')}원/oz`,
+    formatPrice: (p) => {
+      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035);
+      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원/돈`;
+    },
+    formatBuyPrice: (p) => {
+      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 0.97;
+      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
+    },
+    formatSellPrice: (p) => {
+      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 1.03;
+      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
+    },
     messages: {
       sunny: '금값이 올랐어요! 안전자산 인기 상승!',
       rainy: '금값이 내렸어요. 세상이 평화로운가 봐요.',
       cloudy: '금값이 안정적이에요.',
       thunder: '금값이 크게 움직이고 있어요!',
     },
-    advice: '금은 경제가 불안할 때 가치가 오르는 안전자산이에요. 포트폴리오의 10~15%를 금으로 가져가면 안정적이에요.',
+    advice: '금은 경제가 불안할 때 가치가 오르는 안전자산이에요. 포트폴리오의 10~15%를 금으로 가져가면 안정적이에요. 한 돈은 3.75g이에요.',
   },
   silver: {
     name: '은',
     category: 'commodity',
     getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => `${Math.round(p * cachedUsdKrw).toLocaleString('ko-KR')}원/oz`,
+    formatPrice: (p) => {
+      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035);
+      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원/돈`;
+    },
+    formatBuyPrice: (p) => {
+      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 0.95;
+      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
+    },
+    formatSellPrice: (p) => {
+      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 1.05;
+      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
+    },
     messages: {
       sunny: '은값이 올랐어요!',
       rainy: '은값이 내렸어요.',
       cloudy: '은값이 안정적이에요.',
       thunder: '은값이 크게 움직이고 있어요!',
     },
-    advice: '은은 금보다 변동성이 크지만, 산업용으로도 많이 쓰여서 수요가 꾸준해요.',
+    advice: '은은 금보다 변동성이 크지만, 산업용으로도 많이 쓰여서 수요가 꾸준해요. 한 돈은 3.75g이에요.',
   },
   gasoline: {
     name: '휘발유',
@@ -694,8 +718,8 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else if (isCrypto) {
     display = `${sign}$${Math.abs(points).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   } else if (id === 'gold' || id === 'silver') {
-    const krwPoints = points * cachedUsdKrw;
-    display = `${sign}${Math.round(krwPoints).toLocaleString('ko-KR')}원`;
+    const krwPointsPerDon = points * cachedUsdKrw * (3.75 / 31.1035);
+    display = `${sign}${Math.round(krwPointsPerDon).toLocaleString('ko-KR')}원`;
   } else if (id === 'gasoline' || id === 'diesel') {
     display = `${sign}${Math.round(points)}원`;
   } else if (id === 'kbrealestate') {
@@ -733,7 +757,7 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
     const { points, display } = formatChangePoints(id, priceForDisplay, data.change, data.previousClose);
     const status = config.getStatus(priceForDisplay, data.change);
     
-    assets.push({
+    const assetData: AssetData = {
       id,
       name: config.name,
       category: config.category,
@@ -746,7 +770,18 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       message: config.messages[status],
       advice: config.advice,
       chartData,
-    });
+    };
+    
+    if (config.formatBuyPrice) {
+      assetData.buyPrice = data.price * 0.97;
+      assetData.buyPriceDisplay = config.formatBuyPrice(data.price);
+    }
+    if (config.formatSellPrice) {
+      assetData.sellPrice = data.price * 1.03;
+      assetData.sellPriceDisplay = config.formatSellPrice(data.price);
+    }
+    
+    assets.push(assetData);
   }
 
   return assets;
