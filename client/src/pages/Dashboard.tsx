@@ -1,7 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
-import WeatherCard from '@/components/WeatherCard';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import SortableWeatherCard from '@/components/SortableWeatherCard';
 import DetailModal from '@/components/DetailModal';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
@@ -9,6 +25,8 @@ import WeatherFilter from '@/components/WeatherFilter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import type { AssetData, MarketDataResponse, AssetCategory, WeatherStatus } from '@/lib/marketData';
 import { formatTime, formatTimeAgo } from '@/lib/marketData';
+
+const CARD_ORDER_KEY = 'moneyweather_card_order';
 
 const allCats: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
 const allWeathers: WeatherStatus[] = ['sunny', 'cloudy', 'rainy', 'thunder'];
@@ -20,10 +38,29 @@ export default function Dashboard() {
   const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>(allCats);
   const [selectedWeathers, setSelectedWeathers] = useState<WeatherStatus[]>(allWeathers);
   const [timeAgo, setTimeAgo] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [cardOrder, setCardOrder] = useState<string[]>([]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data, isLoading, isError } = useQuery<MarketDataResponse>({
     queryKey: ['/api/market'],
-    refetchInterval: 30000,
+    refetchInterval: isEditMode ? false : 30000,
   });
 
   const refreshMutation = useMutation({
@@ -37,7 +74,20 @@ export default function Dashboard() {
   });
 
   const allAssets = data?.assets || [];
-  const assets = allAssets.filter(asset => 
+
+  const sortedAssets = useMemo(() => {
+    if (cardOrder.length === 0) return allAssets;
+    
+    const orderMap = new Map(cardOrder.map((id, index) => [id, index]));
+    const sorted = [...allAssets].sort((a, b) => {
+      const orderA = orderMap.get(a.id) ?? 999;
+      const orderB = orderMap.get(b.id) ?? 999;
+      return orderA - orderB;
+    });
+    return sorted;
+  }, [allAssets, cardOrder]);
+
+  const assets = sortedAssets.filter(asset => 
     selectedCategories.includes(asset.category) && 
     selectedWeathers.includes(asset.status)
   );
@@ -49,6 +99,15 @@ export default function Dashboard() {
     
     setIsDark(shouldBeDark);
     document.documentElement.classList.toggle('dark', shouldBeDark);
+
+    const savedOrder = localStorage.getItem(CARD_ORDER_KEY);
+    if (savedOrder) {
+      try {
+        setCardOrder(JSON.parse(savedOrder));
+      } catch (e) {
+        console.error('Failed to parse saved card order');
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -112,6 +171,29 @@ export default function Dashboard() {
     refreshMutation.mutate();
   };
 
+  const handleToggleEditMode = () => {
+    setIsEditMode(prev => !prev);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = sortedAssets.findIndex(a => a.id === active.id);
+      const newIndex = sortedAssets.findIndex(a => a.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(
+          sortedAssets.map(a => a.id),
+          oldIndex,
+          newIndex
+        );
+        setCardOrder(newOrder);
+        localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(newOrder));
+      }
+    }
+  };
+
   const getSummaryMessage = () => {
     if (allAssets.length === 0) return '';
     
@@ -147,6 +229,8 @@ export default function Dashboard() {
         onToggleTheme={handleToggleTheme}
         onRefresh={handleRefresh}
         isRefreshing={refreshMutation.isPending}
+        isEditMode={isEditMode}
+        onToggleEditMode={handleToggleEditMode}
       />
 
       <main className="container mx-auto px-4 py-6 space-y-4">
@@ -211,15 +295,35 @@ export default function Dashboard() {
         )}
 
         {!isLoading && !isError && assets.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {assets.map((asset) => (
-              <WeatherCard
-                key={asset.id}
-                asset={asset}
-                onClick={() => handleCardClick(asset)}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext 
+              items={assets.map(a => a.id)} 
+              strategy={rectSortingStrategy}
+            >
+              {isEditMode && (
+                <p 
+                  data-testid="text-edit-mode-hint"
+                  className="text-center text-sm text-muted-foreground pb-2"
+                >
+                  카드를 드래그해서 순서를 변경하세요
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {assets.map((asset) => (
+                  <SortableWeatherCard
+                    key={asset.id}
+                    asset={asset}
+                    onClick={() => handleCardClick(asset)}
+                    isEditMode={isEditMode}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
         {!isLoading && !isError && assets.length === 0 && (
