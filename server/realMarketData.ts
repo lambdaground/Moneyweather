@@ -203,8 +203,9 @@ let previousDieselPrice: number | null = null;
 
 async function fetchKoreanFuelPrices(): Promise<Record<string, { price: number; change: number } | null>> {
   try {
+    const apiKey = process.env.OPINET_API_KEY || 'DEMO_KEY';
     const response = await fetchWithTimeout(
-      'https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=DEMO_KEY',
+      `https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=${apiKey}`,
       8000
     );
     
