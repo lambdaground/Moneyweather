@@ -5,7 +5,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 
 ## Current State
 **Status**: MVP Complete with Real Market Data
-- 14 financial assets displayed as weather cards with live data
+- 16 financial assets displayed as weather cards with live data
 - 5 category filters: 환율, 지수, 원자재, 코인, 금리
 - 4 weather status filters: 맑음, 흐림, 비, 번개
 - Live timestamp showing data freshness
@@ -38,12 +38,14 @@ A mobile-first financial dashboard that translates complex economic data into we
 | JPY/KRW | ExchangeRate-API | Calculated from USD rates |
 | CNY/KRW | ExchangeRate-API | Calculated from USD rates |
 | EUR/KRW | ExchangeRate-API | Calculated from USD rates |
+| Fear & Greed | Alternative.me | /fng/?limit=2 (free, no key) |
 | KOSPI | Yahoo Finance | ^KS11 chart data |
 | KOSDAQ | Yahoo Finance | ^KQ11 chart data |
 | S&P 500 | Yahoo Finance | ^GSPC chart data |
 | Gold | Yahoo Finance | GC=F (Gold Futures) |
 | Silver | Yahoo Finance | SI=F (Silver Futures) |
 | Oil (WTI) | Yahoo Finance | CL=F (Crude Oil Futures) |
+| Real Estate | Yahoo Finance | VNQ (Vanguard Real Estate ETF) |
 | Bitcoin | CoinGecko | simple/price (free, no key) |
 | Ethereum | CoinGecko | simple/price (free, no key) |
 | 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
@@ -68,19 +70,21 @@ A mobile-first financial dashboard that translates complex economic data into we
 | CNY/KRW | < 200 KRW | > 220 KRW | between |
 | EUR/KRW | < 1550 KRW | > 1700 KRW | between |
 
-### Index (지수) - 3 assets
+### Index (지수) - 4 assets
 | Asset | Sunny | Rainy | Thunder |
 |-------|-------|-------|---------|
+| Fear & Greed | Score >= 70 | Score 30-49 | Score < 30 or \|Change\| >= 15 |
 | KOSPI | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 | KOSDAQ | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 | S&P 500 | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 
-### Commodity (원자재) - 3 assets
+### Commodity (원자재) - 4 assets
 | Asset | Sunny | Rainy | Cloudy |
 |-------|-------|-------|--------|
 | Gold | Change > 1% | Change < -1% | between |
 | Silver | Change > 1.5% | Change < -1.5% | between |
 | Oil | Change > 1.5% | Change < -1.5% | between |
+| Real Estate (VNQ) | Change > 0.5% | Change < -0.5% | between |
 
 ### Crypto (코인) - 2 assets
 | Asset | Sunny | Rainy | Thunder |
