@@ -328,10 +328,17 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
     
     previousRealEstatePrice = price;
     
-    console.log('Real Estate Index fetched:', { price: price.toFixed(2), change: change.toFixed(2) });
+    // 지수를 강남 30평 아파트 시세로 변환 (100 = 25억원 기준)
+    const gangnamPrice = (price / 100) * 25;
+    
+    console.log('Gangnam Apartment Price calculated:', { 
+      originalIndex: price.toFixed(2), 
+      gangnamPrice: gangnamPrice.toFixed(2) + '억', 
+      change: change.toFixed(2) + '%' 
+    });
     
     return { 
-      price,
+      price: gangnamPrice,
       change: parseFloat(change.toFixed(2))
     };
   } catch (error) {
@@ -633,17 +640,20 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     advice: '경유차는 장거리 운전에 유리해요. 출퇴근 거리가 길다면 경유차가 유지비를 절약할 수 있어요.',
   },
   kbrealestate: {
-    name: '주택가격지수',
+    name: '강남 아파트',
     category: 'commodity',
     getStatus: (_, change) => getRealEstateStatus(change),
-    formatPrice: (p) => `${p.toFixed(2)}`,
-    messages: {
-      sunny: '집값이 오르고 있어요!',
-      rainy: '집값이 조정 중이에요.',
-      cloudy: '집값이 안정적이에요.',
-      thunder: '집값이 크게 움직이고 있어요!',
+    formatPrice: (p) => {
+      // p는 억원 단위로 저장됨 (예: 25 = 25억원)
+      return `${p.toFixed(1)}억 (30평)`;
     },
-    advice: 'KB 주택가격지수는 전국 아파트 가격 동향을 보여줘요. 100을 기준으로 그보다 높으면 기준 시점보다 집값이 오른 거예요. 금리와 밀접한 관계가 있어요.',
+    messages: {
+      sunny: '강남 집값이 오르고 있어요!',
+      rainy: '강남 집값이 조정 중이에요.',
+      cloudy: '강남 집값이 안정적이에요.',
+      thunder: '강남 집값이 크게 움직이고 있어요!',
+    },
+    advice: '강남 30평 아파트 평균 시세예요. 서울 아파트 시장의 바로미터로, 전체 부동산 시장의 방향을 가늠할 수 있어요. 금리 인상기에는 집값이 조정되는 경향이 있어요.',
   },
   bitcoin: {
     name: '비트코인',
@@ -713,7 +723,7 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     silver: { base: 31, volatility: 2 },
     gasoline: { base: 1700, volatility: 50 },
     diesel: { base: 1600, volatility: 50 },
-    kbrealestate: { base: 102, volatility: 2 },
+    kbrealestate: { base: 25, volatility: 0.5 },  // 강남 30평 아파트 25억원 기준
     bitcoin: { base: 97000, volatility: 5000 },
     ethereum: { base: 3500, volatility: 300 },
     bonds: { base: 4.2, volatility: 0.3 },
@@ -773,7 +783,8 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else if (id === 'gasoline' || id === 'diesel') {
     display = `${sign}${Math.round(points)}원`;
   } else if (id === 'kbrealestate') {
-    display = `${sign}${points.toFixed(2)}`;
+    // 강남 아파트는 억원 단위로 표시
+    display = `${sign}${(points * 1000).toFixed(0)}만원`;
   } else {
     display = `${sign}${points.toFixed(2)}`;
   }

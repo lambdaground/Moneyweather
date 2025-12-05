@@ -20,6 +20,8 @@ A mobile-first financial dashboard that translates complex economic data into we
   - 1 돈 = 3.75g, Conversion: price_per_don = price_per_oz * (3.75 / 31.1035)
   - 살 때 (customer buys) = dealer's sell price (higher, +3% for gold, +5% for silver)
   - 팔 때 (customer sells) = dealer's buy price (lower, -3% for gold, -5% for silver)
+- **강남 아파트 in 억원 (30평)**: Prices shown as "24.9억 (30평)" instead of abstract index
+  - Conversion: gangnam_price = (index / 100) × 25억원 (Gangnam 30-pyeong baseline)
 - **Enhanced typography**: Larger font sizes for filter buttons (text-base) and icons (w-5 h-5)
 - **Interactive price charts**: 5-day historical charts in detail modal using Recharts
 
@@ -54,7 +56,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Silver | Yahoo Finance | SI=F (Silver Futures) |
 | Gasoline (휘발유) | Opinet (오피넷) | avgAllPrice (OPINET_API_KEY required) |
 | Diesel (경유) | Opinet (오피넷) | avgAllPrice (OPINET_API_KEY required) |
-| 주택가격지수 | 부동산통계정보시스템 (REB) | SttsApiTblData (REB_API_KEY required) |
+| 강남 아파트 | 부동산통계정보시스템 (REB) | SttsApiTblData → 강남 30평 시세 변환 (REB_API_KEY required) |
 | Bitcoin | CoinGecko | simple/price (free, no key) |
 | Ethereum | CoinGecko | simple/price (free, no key) |
 | 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
@@ -94,7 +96,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Silver | Change > 1.5% | Change < -1.5% | between |
 | 휘발유 (Gasoline) | < 1,600원/L | > 1,750원/L | between |
 | 경유 (Diesel) | < 1,500원/L | > 1,650원/L | between |
-| 주택가격지수 (KB) | Change > 0.5% | Change < -0.5% | between |
+| 강남 아파트 (30평) | Change > 0.5% | Change < -0.5% | between |
 
 ### Crypto (코인) - 2 assets
 | Asset | Sunny | Rainy | Thunder |
