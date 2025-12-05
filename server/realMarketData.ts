@@ -347,6 +347,77 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
   }
 }
 
+// 한국은행 ECOS API - 기준금리 데이터
+let previousBokRate: number | null = null;
+
+async function fetchBokBaseRate(): Promise<{ price: number; change: number } | null> {
+  const apiKey = process.env.ECOS_API_KEY;
+  
+  if (!apiKey) {
+    console.log('ECOS API key not configured, using mock data for BOK rate');
+    return null;
+  }
+  
+  try {
+    // ECOS API: 한국은행 기준금리 통계표 코드 722Y001
+    // 최근 2개월 데이터 조회 (월별)
+    const today = new Date();
+    const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
+    const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
+    const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
+    
+    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/722Y001/M/${startDate}/${endDate}/0101000`;
+    
+    console.log('Fetching BOK base rate from ECOS API...');
+    const response = await fetchWithTimeout(url, 10000);
+    
+    if (!response.ok) {
+      console.log('ECOS API not accessible, status:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    // API 응답 구조: {"StatisticSearch": {"list_total_count": N, "row": [...]}}
+    const searchResult = data.StatisticSearch;
+    if (!searchResult || !searchResult.row || searchResult.row.length === 0) {
+      console.log('No data in ECOS API response');
+      return null;
+    }
+    
+    // 가장 최신 데이터 (row 배열의 마지막 항목)
+    const latestRow = searchResult.row[searchResult.row.length - 1];
+    const currentRate = parseFloat(latestRow.DATA_VALUE);
+    
+    // 이전 데이터와 비교 (있는 경우)
+    let change = 0;
+    if (searchResult.row.length >= 2) {
+      const previousRow = searchResult.row[searchResult.row.length - 2];
+      const previousRate = parseFloat(previousRow.DATA_VALUE);
+      change = currentRate - previousRate;  // %p 단위 변화
+    } else if (previousBokRate !== null) {
+      change = currentRate - previousBokRate;
+    }
+    
+    previousBokRate = currentRate;
+    
+    console.log('BOK Base Rate fetched:', { 
+      rate: currentRate.toFixed(2) + '%',
+      change: change.toFixed(2) + '%p',
+      period: latestRow.TIME
+    });
+    
+    return { 
+      price: currentRate,
+      change: parseFloat(change.toFixed(2))
+    };
+  } catch (error) {
+    console.log('ECOS API error:', error);
+    return null;
+  }
+}
+
 export async function fetchAllMarketData(): Promise<RawMarketData> {
   const [
     exchangeRates,
@@ -363,6 +434,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     ethereum,
     bonds10y,
     bonds2y,
+    bokrate,
   ] = await Promise.all([
     fetchExchangeRates(),
     fetchFearGreed(),
@@ -378,6 +450,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchCrypto('ethereum'),
     fetchYahooFinance('^TNX'),
     fetchYahooFinance('^IRX'),
+    fetchBokBaseRate(),
   ]);
 
   return { 
@@ -396,6 +469,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     ethereum,
     bonds: bonds10y,
     bonds2y,
+    bokrate,
   };
 }
 
@@ -723,6 +797,24 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     },
     advice: '2년물 국채 금리는 연준의 금리 정책 기대를 반영해요. 장단기 금리 차이도 중요한 지표예요.',
   },
+  bokrate: {
+    name: '한국 기준금리',
+    category: 'bonds',
+    getStatus: (price, change) => {
+      if (Math.abs(change) >= 0.25) return 'thunder';
+      if (change > 0) return 'sunny';
+      if (change < 0) return 'rainy';
+      return 'cloudy';
+    },
+    formatPrice: (p) => `${p.toFixed(2)}%`,
+    messages: {
+      sunny: '한은이 금리를 올렸어요!',
+      rainy: '한은이 금리를 내렸어요.',
+      cloudy: '기준금리가 동결됐어요.',
+      thunder: '기준금리가 크게 변동했어요!',
+    },
+    advice: '한국은행 기준금리는 대출금리와 예금금리에 영향을 줘요. 금리가 오르면 대출 이자가 늘어나고, 예금 이자도 올라요.',
+  },
 };
 
 function generateMockData(id: AssetType): { price: number; change: number } {
@@ -745,6 +837,7 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     ethereum: { base: 3500, volatility: 300 },
     bonds: { base: 4.2, volatility: 0.3 },
     bonds2y: { base: 4.5, volatility: 0.2 },
+    bokrate: { base: 3.0, volatility: 0 },  // 한국 기준금리 현재 3.0%
   };
   
   const config = configs[id];
@@ -774,7 +867,7 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   
   const isIndex = ['kospi', 'kosdaq', 'nasdaq', 'sp500'].includes(id);
   const isCurrency = ['usdkrw', 'jpykrw', 'cnykrw', 'eurkrw'].includes(id);
-  const isBonds = ['bonds', 'bonds2y'].includes(id);
+  const isBonds = ['bonds', 'bonds2y', 'bokrate'].includes(id);
   const isCrypto = ['bitcoin', 'ethereum'].includes(id);
   
   let display = '';

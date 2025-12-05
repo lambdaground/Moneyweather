@@ -110,11 +110,12 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Bitcoin | Change > 1% | Change < -1% | \|Change\| > 3% |
 | Ethereum | Change > 1% | Change < -1% | \|Change\| > 3% |
 
-### Bonds (금리) - 2 assets
-| Asset | Sunny | Rainy | Cloudy |
-|-------|-------|-------|--------|
+### Bonds (금리) - 3 assets
+| Asset | Sunny | Rainy | Cloudy/Thunder |
+|-------|-------|-------|----------------|
 | 10Y Treasury | Change > 0.1% | Change < -0.1% | between |
 | 2Y Treasury | Change > 0.1% | Change < -0.1% | between |
+| 한국 기준금리 | 인상 | 인하 | 동결 / 0.25%p 이상 변동시 번개 |
 
 ## File Structure
 ```

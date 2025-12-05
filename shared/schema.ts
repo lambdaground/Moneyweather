@@ -24,7 +24,7 @@ export type AssetType =
   | 'feargreed' | 'kospi' | 'kosdaq' | 'nasdaq' | 'sp500'
   | 'gold' | 'silver' | 'gasoline' | 'diesel' | 'kbrealestate'
   | 'bitcoin' | 'ethereum'
-  | 'bonds' | 'bonds2y';
+  | 'bonds' | 'bonds2y' | 'bokrate';
 
 export type AssetCategory = 'currency' | 'index' | 'commodity' | 'crypto' | 'bonds';
 
