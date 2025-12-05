@@ -1,28 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import WeatherCard from '@/components/WeatherCard';
 import DetailModal from '@/components/DetailModal';
 import Header from '@/components/Header';
-import { getMockMarketData, type AssetData } from '@/lib/marketData';
+import { queryClient, apiRequest } from '@/lib/queryClient';
+import type { AssetData, MarketDataResponse } from '@/lib/marketData';
 
 export default function Dashboard() {
-  const [assets, setAssets] = useState<AssetData[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<AssetData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadData = useCallback(() => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      const data = getMockMarketData();
-      setAssets(data);
-      setIsRefreshing(false);
-    }, 300);
-  }, []);
+  const { data, isLoading, isError } = useQuery<MarketDataResponse>({
+    queryKey: ['/api/market'],
+    refetchInterval: 30000,
+  });
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const refreshMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/market/refresh');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/market'] });
+    },
+  });
+
+  const assets = data?.assets || [];
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -51,10 +55,12 @@ export default function Dashboard() {
   };
 
   const handleRefresh = () => {
-    loadData();
+    refreshMutation.mutate();
   };
 
   const getSummaryMessage = () => {
+    if (assets.length === 0) return '';
+    
     const sunnyCount = assets.filter(a => a.status === 'sunny').length;
     const thunderCount = assets.filter(a => a.status === 'thunder').length;
     
@@ -70,7 +76,7 @@ export default function Dashboard() {
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
         onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
+        isRefreshing={refreshMutation.isPending}
       />
 
       <main className="container mx-auto px-4 py-6">
@@ -83,19 +89,32 @@ export default function Dashboard() {
           </p>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {assets.map((asset) => (
-            <WeatherCard
-              key={asset.id}
-              asset={asset}
-              onClick={() => handleCardClick(asset)}
-            />
-          ))}
-        </div>
+        {isLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div 
+                key={i}
+                className="h-40 rounded-lg bg-muted animate-pulse"
+              />
+            ))}
+          </div>
+        )}
 
-        {assets.length === 0 && !isRefreshing && (
+        {isError && (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">데이터를 불러오는 중...</p>
+            <p className="text-destructive">데이터를 불러오는 데 실패했어요. 다시 시도해주세요.</p>
+          </div>
+        )}
+
+        {!isLoading && !isError && assets.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {assets.map((asset) => (
+              <WeatherCard
+                key={asset.id}
+                asset={asset}
+                onClick={() => handleCardClick(asset)}
+              />
+            ))}
           </div>
         )}
       </main>
