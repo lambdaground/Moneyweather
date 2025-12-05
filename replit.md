@@ -7,6 +7,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 **Status**: MVP Complete with Real Market Data
 - 14 financial assets displayed as weather cards with live data
 - 5 category filters: 환율, 지수, 원자재, 코인, 금리
+- 4 weather status filters: 맑음, 흐림, 비, 번개
 - Live timestamp showing data freshness
 - Korean language UI throughout
 - Mobile-first responsive design
@@ -97,12 +98,13 @@ A mobile-first financial dashboard that translates complex economic data into we
 ```
 client/src/
 ├── components/
-│   ├── CategoryFilter.tsx # Category filter buttons
+│   ├── CategoryFilter.tsx # Category filter buttons (환율, 지수, etc.)
+│   ├── WeatherFilter.tsx  # Weather status filter (맑음, 흐림, 비, 번개)
 │   ├── WeatherCard.tsx    # Main weather card component
 │   ├── DetailModal.tsx    # Dr. Money advice modal
 │   └── Header.tsx         # App header with controls
 ├── pages/
-│   └── Dashboard.tsx      # Main dashboard page
+│   └── Dashboard.tsx      # Main dashboard page with dual filtering
 ├── lib/
 │   └── marketData.ts      # Types and utilities
 server/
