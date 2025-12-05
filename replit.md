@@ -4,13 +4,13 @@
 A mobile-first financial dashboard that translates complex economic data into weather metaphors for users with low financial literacy. All UI is in Korean with friendly, beginner-focused messaging.
 
 ## Current State
-**Status**: MVP Complete
-- 5 financial assets displayed as weather cards
+**Status**: MVP Complete with Real Market Data
+- 5 financial assets displayed as weather cards with live data
 - Korean language UI throughout
 - Mobile-first responsive design
 - Dark/light mode support
 - Detail modal with "머니 박사의 조언" (Dr. Money's Advice)
-- Mock data generation with randomized market conditions
+- Real-time market data from free APIs (no API keys required)
 
 ## Architecture
 
@@ -28,11 +28,22 @@ A mobile-first financial dashboard that translates complex economic data into we
 - Wouter for routing
 - Shadcn UI components
 
+### Data Sources (Real APIs)
+| Asset | API Source | Endpoint |
+|-------|-----------|----------|
+| USD/KRW | ExchangeRate-API | v4/latest/USD (free, no key) |
+| KOSPI | Yahoo Finance | ^KS11 chart data |
+| Gold | Yahoo Finance | GC=F (Gold Futures) |
+| Bitcoin | CoinGecko | simple/price (free, no key) |
+| 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
+
 ### Data Flow
-1. Server generates mock market data with weather status logic
-2. Frontend fetches data via React Query with 30-second auto-refresh
-3. User can force refresh to get new random data
-4. Click card to see detailed advice in modal
+1. Server fetches real market data from multiple free APIs
+2. Data is cached for 30 seconds to avoid rate limiting
+3. Frontend fetches data via React Query with 30-second auto-refresh
+4. User can force refresh to get latest data
+5. If any API fails, fallback to mock data for that asset
+6. Click card to see detailed advice in modal
 
 ## Asset Types & Weather Logic
 
@@ -57,8 +68,8 @@ client/src/
 │   └── marketData.ts      # Types and utilities
 server/
 ├── routes.ts              # API routes
-├── storage.ts             # In-memory storage
-├── marketData.ts          # Market data generation logic
+├── storage.ts             # In-memory storage with caching
+├── realMarketData.ts      # Real API integration service
 shared/
 └── schema.ts              # Shared types and schemas
 ```
@@ -70,7 +81,6 @@ shared/
 - Weather metaphors for financial concepts
 
 ## Future Enhancements
-- Real-time market data API integration
 - Historical price charts
 - Push notifications for status changes
 - Personalized portfolio tracking
