@@ -19,11 +19,19 @@ export type User = typeof users.$inferSelect;
 
 export type WeatherStatus = 'sunny' | 'rainy' | 'cloudy' | 'thunder';
 
-export type AssetType = 'usdkrw' | 'kospi' | 'gold' | 'bitcoin' | 'bonds';
+export type AssetType = 
+  | 'usdkrw' | 'jpykrw' | 'cnykrw' | 'eurkrw'
+  | 'kospi' | 'kosdaq' | 'sp500'
+  | 'gold' | 'silver' | 'oil'
+  | 'bitcoin' | 'ethereum'
+  | 'bonds' | 'bonds2y';
+
+export type AssetCategory = 'currency' | 'index' | 'commodity' | 'crypto' | 'bonds';
 
 export interface AssetData {
   id: AssetType;
   name: string;
+  category: AssetCategory;
   price: number;
   priceDisplay: string;
   change: number;
@@ -37,9 +45,20 @@ export interface MarketDataResponse {
   generatedAt: string;
 }
 
+export const assetCategories: Record<AssetCategory, { name: string; emoji: string }> = {
+  currency: { name: '환율', emoji: '💱' },
+  index: { name: '주가지수', emoji: '📈' },
+  commodity: { name: '원자재', emoji: '🪙' },
+  crypto: { name: '암호화폐', emoji: '₿' },
+  bonds: { name: '금리/채권', emoji: '📊' },
+};
+
+export const defaultAssets: AssetType[] = ['usdkrw', 'kospi', 'gold', 'bitcoin', 'bonds'];
+
 export const assetDataSchema = z.object({
-  id: z.enum(['usdkrw', 'kospi', 'gold', 'bitcoin', 'bonds']),
+  id: z.string(),
   name: z.string(),
+  category: z.enum(['currency', 'index', 'commodity', 'crypto', 'bonds']),
   price: z.number(),
   priceDisplay: z.string(),
   change: z.number(),

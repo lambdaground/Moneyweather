@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { Clock } from 'lucide-react';
 import WeatherCard from '@/components/WeatherCard';
 import DetailModal from '@/components/DetailModal';
 import Header from '@/components/Header';
+import CategoryFilter from '@/components/CategoryFilter';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import type { AssetData, MarketDataResponse } from '@/lib/marketData';
+import type { AssetData, MarketDataResponse, AssetCategory } from '@/lib/marketData';
+import { formatTime, formatTimeAgo } from '@/lib/marketData';
 
 export default function Dashboard() {
   const [selectedAsset, setSelectedAsset] = useState<AssetData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>([
+    'currency', 'index', 'commodity', 'crypto', 'bonds'
+  ]);
+  const [timeAgo, setTimeAgo] = useState('');
 
   const { data, isLoading, isError } = useQuery<MarketDataResponse>({
     queryKey: ['/api/market'],
@@ -26,7 +33,8 @@ export default function Dashboard() {
     },
   });
 
-  const assets = data?.assets || [];
+  const allAssets = data?.assets || [];
+  const assets = allAssets.filter(asset => selectedCategories.includes(asset.category));
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -37,11 +45,33 @@ export default function Dashboard() {
     document.documentElement.classList.toggle('dark', shouldBeDark);
   }, []);
 
+  useEffect(() => {
+    if (data?.generatedAt) {
+      setTimeAgo(formatTimeAgo(data.generatedAt));
+      
+      const interval = setInterval(() => {
+        setTimeAgo(formatTimeAgo(data.generatedAt));
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [data?.generatedAt]);
+
   const handleToggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
     document.documentElement.classList.toggle('dark', newIsDark);
     localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+  };
+
+  const handleToggleCategory = (category: AssetCategory) => {
+    setSelectedCategories(prev => {
+      if (prev.includes(category)) {
+        if (prev.length === 1) return prev;
+        return prev.filter(c => c !== category);
+      }
+      return [...prev, category];
+    });
   };
 
   const handleCardClick = (asset: AssetData) => {
@@ -79,19 +109,36 @@ export default function Dashboard() {
         isRefreshing={refreshMutation.isPending}
       />
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {data?.generatedAt && (
+          <div 
+            data-testid="text-timestamp"
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+          >
+            <Clock className="w-4 h-4" />
+            <span>
+              {formatTime(data.generatedAt)} 기준 ({timeAgo})
+            </span>
+          </div>
+        )}
+
+        <CategoryFilter
+          selectedCategories={selectedCategories}
+          onToggleCategory={handleToggleCategory}
+        />
+
         {assets.length > 0 && (
           <p 
             data-testid="text-summary"
-            className="text-center text-muted-foreground mb-6"
+            className="text-center text-muted-foreground"
           >
             {getSummaryMessage()}
           </p>
         )}
 
         {isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div 
                 key={i}
                 className="h-40 rounded-lg bg-muted animate-pulse"
@@ -107,7 +154,7 @@ export default function Dashboard() {
         )}
 
         {!isLoading && !isError && assets.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {assets.map((asset) => (
               <WeatherCard
                 key={asset.id}
@@ -115,6 +162,12 @@ export default function Dashboard() {
                 onClick={() => handleCardClick(asset)}
               />
             ))}
+          </div>
+        )}
+
+        {!isLoading && !isError && assets.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">표시할 자산이 없어요. 카테고리를 선택해주세요.</p>
           </div>
         )}
       </main>
