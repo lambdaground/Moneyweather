@@ -1,0 +1,79 @@
+# Role: Senior Frontend Developer & UX Designer
+# Project: Money Weather (머니 웨더) - Financial Dashboard for Beginners
+
+I need a mobile-first web application built with **Next.js (App Router), TypeScript, Tailwind CSS, and Lucide React**.
+The goal is to translate complex economic data into "Weather Metaphors" for users with low financial literacy.
+
+## 1. Core Data Structure (Mock Data)
+Create a `data/marketData.ts` file. Since we don't have real APIs yet, generate **Mock Data** that randomizes on page refresh so I can test different weather states.
+The app must support the following 5 assets.
+
+**IMPORTANT:** The UI text must be in **Korean**.
+
+### Asset Logic & Metaphors
+For each asset, define the logic for:
+- `status`: "Sunny" (Good/Up), "Rainy" (Bad/Down), "Cloudy" (Flat), "Thunder" (Volatile).
+- `message`: A friendly one-line comment based on the status.
+
+#### 1. USD/KRW (Exchange Rate)
+- **Logic:** If price goes UP (>1400), it is "Rainy" (Bad for travel). If down, "Sunny".
+- **Messages (Korean):**
+  - High (Rainy): "지금 여행가면 손해예요! 환전은 미루세요."
+  - Low (Sunny): "해외직구 타이밍! 달러가 저렴해요."
+  - Flat (Cloudy): "환율이 잠잠해요. 큰 변화가 없네요."
+
+#### 2. KOSPI (Stock Market)
+- **Logic:** Price Up = "Sunny", Price Down = "Rainy".
+- **Messages:**
+  - Up: "시장이 뜨거워요! 빨간불이 켜졌어요."
+  - Down: "시장이 차갑게 식었어요. 바겐세일 중일지도?"
+
+#### 3. Gold
+- **Logic:** Price Up = "Sunny" (Safe asset preference).
+- **Messages:**
+  - Up: "불안할 땐 역시 금이죠! 방어력이 올라갔어요."
+  - Down: "세상이 평화로운가 봐요. 금 인기가 식었어요."
+
+#### 4. Bitcoin
+- **Logic:** Change > 3% = "Thunder" (Volatile), Up = "Sunny", Down = "Rainy".
+- **Messages:**
+  - Volatile: "롤러코스터 출발합니다! 꽉 잡으세요!"
+  - Up: "코인이 달리고 있어요! 🚀"
+
+#### 5. 10Y Bonds (Interest Rate)
+- **Logic:** Yield Up = "Sunny" (Good for savings), Yield Down = "Cloudy".
+- **Messages:**
+  - Up: "은행 이자가 쏠쏠해요. 적금 들기 좋은 날!"
+  - Down: "금리가 내려갔어요. 대출받긴 좋겠네요."
+
+## 2. UI/Design Requirements
+
+### A. Layout
+- **Mobile First:** A clean, single-column card layout on mobile. Grid on desktop.
+- **Header:** "오늘의 머니 웨더 🌤️" (Today's Money Weather)
+- **Visual Style:**
+  - Use **Soft Pastels** instead of harsh Red/Blue trading colors.
+  - Sunny Card: `bg-orange-50` border-orange-200
+  - Rainy Card: `bg-slate-50` border-slate-200
+  - Thunder Card: `bg-purple-50` border-purple-200
+  - Use Large Icons from `lucide-react` (Sun, CloudRain, Zap, Umbrella, PiggyBank).
+
+### B. Component: `WeatherCard`
+- Displays:
+  1. Asset Name (e.g., "미국 달러", "비트코인")
+  2. Large Weather Icon (Animated if possible, or just static).
+  3. The "One-line Message" (Most important).
+  4. The actual price/rate (Small, secondary text, e.g., "1,405 KRW").
+  5. A visible tag showing the % change (e.g., "+0.5%").
+
+### C. Detail View (Modal/Sheet)
+- When a user clicks a card, open a simple modal.
+- Content:
+  - "Dr. Money's Advice": A static tip related to that asset.
+  - Example: "환율이 높을 땐 수출 기업 주식이 좋을 수 있어요!" (If USD is high).
+
+## 3. Implementation Steps
+1. Setup Next.js with Tailwind.
+2. Implement the `getMockMarketData` function with the specific Korean logic above.
+3. Build the `WeatherCard` component with dynamic styling based on the weather status.
+4. Assemble the Main Dashboard.
