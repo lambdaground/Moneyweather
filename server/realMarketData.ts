@@ -183,6 +183,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     gold,
     silver,
     oil,
+    realestate,
     bitcoin,
     ethereum,
     bonds10y,
@@ -196,6 +197,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchYahooFinance('GC=F'),
     fetchYahooFinance('SI=F'),
     fetchYahooFinance('CL=F'),
+    fetchYahooFinance('VNQ'),
     fetchCrypto('bitcoin'),
     fetchCrypto('ethereum'),
     fetchYahooFinance('^TNX'),
@@ -211,6 +213,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     gold, 
     silver,
     oil,
+    realestate,
     bitcoin, 
     ethereum,
     bonds: bonds10y,
@@ -256,6 +259,13 @@ function getFearGreedStatus(value: number, change: number): WeatherStatus {
   if (value >= 50) return 'cloudy';
   if (value >= 30) return 'rainy';
   return 'thunder';
+}
+
+function getRealEstateStatus(change: number): WeatherStatus {
+  if (Math.abs(change) > 2) return 'thunder';
+  if (change > 0.5) return 'sunny';
+  if (change < -0.5) return 'rainy';
+  return 'cloudy';
 }
 
 interface AssetConfig {
@@ -411,6 +421,19 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     },
     advice: '유가는 물가와 경제에 큰 영향을 줘요. 유가가 오르면 물가도 오르는 경향이 있어요.',
   },
+  realestate: {
+    name: '부동산 (VNQ)',
+    category: 'commodity',
+    getStatus: (_, change) => getRealEstateStatus(change),
+    formatPrice: (p) => `$${p.toFixed(2)}`,
+    messages: {
+      sunny: '부동산 시장이 활기차요!',
+      rainy: '부동산 시장이 조정 중이에요.',
+      cloudy: '부동산 시장이 안정적이에요.',
+      thunder: '부동산 시장이 크게 움직이고 있어요!',
+    },
+    advice: 'VNQ는 미국 부동산 투자 신탁(REITs) ETF예요. 부동산 시장의 전반적인 흐름을 보여줘요. 금리와 밀접한 관계가 있어요.',
+  },
   bitcoin: {
     name: '비트코인',
     category: 'crypto',
@@ -478,6 +501,7 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     gold: { base: 2650, volatility: 80 },
     silver: { base: 31, volatility: 2 },
     oil: { base: 70, volatility: 5 },
+    realestate: { base: 90, volatility: 5 },
     bitcoin: { base: 97000, volatility: 5000 },
     ethereum: { base: 3500, volatility: 300 },
     bonds: { base: 4.2, volatility: 0.3 },
