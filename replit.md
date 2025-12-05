@@ -5,7 +5,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 
 ## Current State
 **Status**: MVP Complete with Real Market Data
-- 16 financial assets displayed as weather cards with live data
+- 17 financial assets displayed as weather cards with live data
 - 5 category filters: 환율, 지수, 원자재, 코인, 금리
 - 4 weather status filters: 맑음, 흐림, 비, 번개
 - Live timestamp showing data freshness
@@ -44,8 +44,9 @@ A mobile-first financial dashboard that translates complex economic data into we
 | S&P 500 | Yahoo Finance | ^GSPC chart data |
 | Gold | Yahoo Finance | GC=F (Gold Futures) |
 | Silver | Yahoo Finance | SI=F (Silver Futures) |
-| Oil (WTI) | Yahoo Finance | CL=F (Crude Oil Futures) |
-| Real Estate | Yahoo Finance | VNQ (Vanguard Real Estate ETF) |
+| Gasoline (휘발유) | Opinet (오피넷) | avgAllPrice (requires API key, mock fallback) |
+| Diesel (경유) | Opinet (오피넷) | avgAllPrice (requires API key, mock fallback) |
+| KB Real Estate | KB부동산 | priceIndexList (mock fallback) |
 | Bitcoin | CoinGecko | simple/price (free, no key) |
 | Ethereum | CoinGecko | simple/price (free, no key) |
 | 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
@@ -78,13 +79,14 @@ A mobile-first financial dashboard that translates complex economic data into we
 | KOSDAQ | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 | S&P 500 | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 
-### Commodity (원자재) - 4 assets
+### Commodity (원자재) - 5 assets
 | Asset | Sunny | Rainy | Cloudy |
 |-------|-------|-------|--------|
 | Gold | Change > 1% | Change < -1% | between |
 | Silver | Change > 1.5% | Change < -1.5% | between |
-| Oil | Change > 1.5% | Change < -1.5% | between |
-| Real Estate (VNQ) | Change > 0.5% | Change < -0.5% | between |
+| 휘발유 (Gasoline) | < 1,600원/L | > 1,750원/L | between |
+| 경유 (Diesel) | < 1,500원/L | > 1,650원/L | between |
+| 주택가격지수 (KB) | Change > 0.5% | Change < -0.5% | between |
 
 ### Crypto (코인) - 2 assets
 | Asset | Sunny | Rainy | Thunder |

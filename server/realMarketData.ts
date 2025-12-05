@@ -173,6 +173,98 @@ async function fetchFearGreed(): Promise<{ price: number; change: number } | nul
   }
 }
 
+let previousGasolinePrice: number | null = null;
+let previousDieselPrice: number | null = null;
+
+async function fetchKoreanFuelPrices(): Promise<Record<string, { price: number; change: number } | null>> {
+  try {
+    const response = await fetchWithTimeout(
+      'https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=DEMO_KEY',
+      8000
+    );
+    
+    if (!response.ok) {
+      console.log('Opinet API not accessible, using realistic Korean fuel prices');
+      return { gasoline: null, diesel: null };
+    }
+    
+    const data = await response.json();
+    const result = data.RESULT?.OIL;
+    
+    if (!result || !Array.isArray(result)) {
+      return { gasoline: null, diesel: null };
+    }
+    
+    const rates: Record<string, { price: number; change: number } | null> = {};
+    
+    for (const item of result) {
+      if (item.PRODCD === 'B027') {
+        const price = parseFloat(item.PRICE);
+        const change = previousGasolinePrice 
+          ? ((price - previousGasolinePrice) / previousGasolinePrice) * 100 
+          : 0;
+        rates.gasoline = { price, change: parseFloat(change.toFixed(2)) };
+        previousGasolinePrice = price;
+      }
+      if (item.PRODCD === 'D047') {
+        const price = parseFloat(item.PRICE);
+        const change = previousDieselPrice 
+          ? ((price - previousDieselPrice) / previousDieselPrice) * 100 
+          : 0;
+        rates.diesel = { price, change: parseFloat(change.toFixed(2)) };
+        previousDieselPrice = price;
+      }
+    }
+    
+    return rates;
+  } catch (error) {
+    console.log('Korean fuel API unavailable, using mock data');
+    return { gasoline: null, diesel: null };
+  }
+}
+
+let previousKBRealEstatePrice: number | null = null;
+
+async function fetchKBRealEstate(): Promise<{ price: number; change: number } | null> {
+  try {
+    const response = await fetchWithTimeout(
+      'https://data-api.kbland.kr/bfmstat/weekMnthlyHus498/priceIndexList?월간주간구분코드=01&매물종별구분=01&매매전세코드=01&기간=1',
+      8000
+    );
+    
+    if (!response.ok) {
+      console.log('KB Real Estate API not accessible');
+      return null;
+    }
+    
+    const data = await response.json();
+    const priceData = data.dataBody?.data;
+    
+    if (!priceData || !Array.isArray(priceData) || priceData.length === 0) {
+      return null;
+    }
+    
+    const latest = priceData[priceData.length - 1];
+    const price = parseFloat(latest.전국) || 100;
+    
+    const change = previousKBRealEstatePrice
+      ? ((price - previousKBRealEstatePrice) / previousKBRealEstatePrice) * 100
+      : (priceData.length > 1 
+          ? ((price - parseFloat(priceData[priceData.length - 2].전국)) / parseFloat(priceData[priceData.length - 2].전국)) * 100
+          : 0);
+    
+    previousKBRealEstatePrice = price;
+    
+    return { 
+      price,
+      change: parseFloat(change.toFixed(2))
+    };
+  } catch (error) {
+    console.log('KB Real Estate API unavailable, using mock data');
+    return null;
+  }
+}
+
 export async function fetchAllMarketData(): Promise<RawMarketData> {
   const [
     exchangeRates,
@@ -182,8 +274,8 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     sp500,
     gold,
     silver,
-    oil,
-    realestate,
+    koreanFuel,
+    kbrealestate,
     bitcoin,
     ethereum,
     bonds10y,
@@ -196,8 +288,8 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchYahooFinance('^GSPC'),
     fetchYahooFinance('GC=F'),
     fetchYahooFinance('SI=F'),
-    fetchYahooFinance('CL=F'),
-    fetchYahooFinance('VNQ'),
+    fetchKoreanFuelPrices(),
+    fetchKBRealEstate(),
     fetchCrypto('bitcoin'),
     fetchCrypto('ethereum'),
     fetchYahooFinance('^TNX'),
@@ -212,8 +304,9 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     sp500,
     gold, 
     silver,
-    oil,
-    realestate,
+    gasoline: koreanFuel.gasoline,
+    diesel: koreanFuel.diesel,
+    kbrealestate,
     bitcoin, 
     ethereum,
     bonds: bonds10y,
@@ -265,6 +358,12 @@ function getRealEstateStatus(change: number): WeatherStatus {
   if (Math.abs(change) > 2) return 'thunder';
   if (change > 0.5) return 'sunny';
   if (change < -0.5) return 'rainy';
+  return 'cloudy';
+}
+
+function getFuelStatus(price: number, baseLow: number, baseHigh: number): WeatherStatus {
+  if (price > baseHigh) return 'rainy';
+  if (price < baseLow) return 'sunny';
   return 'cloudy';
 }
 
@@ -408,31 +507,44 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     },
     advice: '은은 금보다 변동성이 크지만, 산업용으로도 많이 쓰여서 수요가 꾸준해요.',
   },
-  oil: {
-    name: '원유 (WTI)',
+  gasoline: {
+    name: '휘발유',
     category: 'commodity',
-    getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => `$${p.toFixed(2)}/배럴`,
+    getStatus: (price) => getFuelStatus(price, 1600, 1750),
+    formatPrice: (p) => `${p.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원/L`,
     messages: {
-      sunny: '유가가 올랐어요! 에너지 기업 주목!',
-      rainy: '유가가 내렸어요. 주유소 갈 때 좋겠네요.',
-      cloudy: '유가가 안정적이에요.',
-      thunder: '유가가 크게 움직이고 있어요!',
+      sunny: '휘발유가 저렴해요! 주유하기 좋은 때!',
+      rainy: '휘발유가 비싸요. 대중교통 고려해보세요.',
+      cloudy: '휘발유 가격이 평균이에요.',
+      thunder: '유가가 급변하고 있어요!',
     },
-    advice: '유가는 물가와 경제에 큰 영향을 줘요. 유가가 오르면 물가도 오르는 경향이 있어요.',
+    advice: '기름값이 오를 때는 연비 좋은 운전 습관을 들이세요. 급출발, 급가속을 피하면 연비가 10%까지 좋아져요!',
   },
-  realestate: {
-    name: '부동산 (VNQ)',
+  diesel: {
+    name: '경유',
+    category: 'commodity',
+    getStatus: (price) => getFuelStatus(price, 1500, 1650),
+    formatPrice: (p) => `${p.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}원/L`,
+    messages: {
+      sunny: '경유가 저렴해요!',
+      rainy: '경유가 비싸요.',
+      cloudy: '경유 가격이 안정적이에요.',
+      thunder: '경유 가격이 급변하고 있어요!',
+    },
+    advice: '경유차는 장거리 운전에 유리해요. 출퇴근 거리가 길다면 경유차가 유지비를 절약할 수 있어요.',
+  },
+  kbrealestate: {
+    name: '주택가격지수',
     category: 'commodity',
     getStatus: (_, change) => getRealEstateStatus(change),
-    formatPrice: (p) => `$${p.toFixed(2)}`,
+    formatPrice: (p) => `${p.toFixed(2)}`,
     messages: {
-      sunny: '부동산 시장이 활기차요!',
-      rainy: '부동산 시장이 조정 중이에요.',
-      cloudy: '부동산 시장이 안정적이에요.',
-      thunder: '부동산 시장이 크게 움직이고 있어요!',
+      sunny: '집값이 오르고 있어요!',
+      rainy: '집값이 조정 중이에요.',
+      cloudy: '집값이 안정적이에요.',
+      thunder: '집값이 크게 움직이고 있어요!',
     },
-    advice: 'VNQ는 미국 부동산 투자 신탁(REITs) ETF예요. 부동산 시장의 전반적인 흐름을 보여줘요. 금리와 밀접한 관계가 있어요.',
+    advice: 'KB 주택가격지수는 전국 아파트 가격 동향을 보여줘요. 100을 기준으로 그보다 높으면 기준 시점보다 집값이 오른 거예요. 금리와 밀접한 관계가 있어요.',
   },
   bitcoin: {
     name: '비트코인',
@@ -500,8 +612,9 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     sp500: { base: 6000, volatility: 100 },
     gold: { base: 2650, volatility: 80 },
     silver: { base: 31, volatility: 2 },
-    oil: { base: 70, volatility: 5 },
-    realestate: { base: 90, volatility: 5 },
+    gasoline: { base: 1700, volatility: 50 },
+    diesel: { base: 1600, volatility: 50 },
+    kbrealestate: { base: 102, volatility: 2 },
     bitcoin: { base: 97000, volatility: 5000 },
     ethereum: { base: 3500, volatility: 300 },
     bonds: { base: 4.2, volatility: 0.3 },
