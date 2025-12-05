@@ -67,7 +67,7 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
             </h3>
             <p 
               data-testid={`text-asset-price-${asset.id}`}
-              className="text-sm text-muted-foreground mt-0.5"
+              className="text-lg font-bold text-foreground mt-0.5"
             >
               {asset.priceDisplay}
             </p>
@@ -84,11 +84,11 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
           {asset.message}
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge
             data-testid={`badge-change-${asset.id}`}
             variant="secondary"
-            className={`${
+            className={`text-sm ${
               isPositive 
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' 
                 : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
@@ -96,12 +96,23 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
           >
             <span className="flex items-center gap-1">
               {isPositive ? (
-                <TrendingUp className="w-3 h-3" />
+                <TrendingUp className="w-3.5 h-3.5" />
               ) : (
-                <TrendingDown className="w-3 h-3" />
+                <TrendingDown className="w-3.5 h-3.5" />
               )}
               {isPositive ? '+' : ''}{asset.change}%
             </span>
+          </Badge>
+          <Badge
+            data-testid={`badge-change-points-${asset.id}`}
+            variant="outline"
+            className={`text-sm ${
+              isPositive 
+                ? 'border-green-300 text-green-700 dark:border-green-700 dark:text-green-300' 
+                : 'border-red-300 text-red-700 dark:border-red-700 dark:text-red-300'
+            }`}
+          >
+            {asset.changePointsDisplay}
           </Badge>
         </div>
       </div>

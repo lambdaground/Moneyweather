@@ -16,9 +16,12 @@ export interface AssetData {
   price: number;
   priceDisplay: string;
   change: number;
+  changePoints: number;
+  changePointsDisplay: string;
   status: WeatherStatus;
   message: string;
   advice: string;
+  chartData?: { time: string; price: number }[];
 }
 
 export interface MarketDataResponse {

@@ -1,8 +1,10 @@
 import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "@shared/schema";
 
 interface RawMarketData {
-  [key: string]: { price: number; change: number } | null;
+  [key: string]: { price: number; change: number; previousClose?: number; chartData?: { time: string; price: number }[] } | null;
 }
+
+let cachedUsdKrw: number = 1400;
 
 async function fetchWithTimeout(url: string, timeout = 5000): Promise<Response> {
   const controller = new AbortController();
@@ -20,7 +22,7 @@ async function fetchWithTimeout(url: string, timeout = 5000): Promise<Response> 
 
 const previousRates: Record<string, number> = {};
 
-async function fetchExchangeRates(): Promise<Record<string, { price: number; change: number } | null>> {
+async function fetchExchangeRates(): Promise<Record<string, { price: number; change: number; previousClose?: number } | null>> {
   try {
     const response = await fetchWithTimeout(
       'https://api.exchangerate-api.com/v4/latest/USD'
@@ -35,14 +37,18 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
     
     if (!krwPerUsd) return { usdkrw: null, jpykrw: null, cnykrw: null, eurkrw: null };
     
-    const rates: Record<string, { price: number; change: number } | null> = {};
+    cachedUsdKrw = krwPerUsd;
+    
+    const rates: Record<string, { price: number; change: number; previousClose?: number } | null> = {};
     
     const usdkrwPrice = krwPerUsd;
+    const prevUsdkrw = previousRates.usdkrw || usdkrwPrice;
     rates.usdkrw = {
       price: usdkrwPrice,
       change: previousRates.usdkrw 
         ? parseFloat((((usdkrwPrice - previousRates.usdkrw) / previousRates.usdkrw) * 100).toFixed(2))
-        : 0
+        : 0,
+      previousClose: prevUsdkrw
     };
     previousRates.usdkrw = usdkrwPrice;
     
@@ -86,10 +92,10 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
   }
 }
 
-async function fetchYahooFinance(symbol: string): Promise<{ price: number; change: number } | null> {
+async function fetchYahooFinance(symbol: string): Promise<{ price: number; change: number; previousClose?: number; chartData?: { time: string; price: number }[] } | null> {
   try {
     const response = await fetchWithTimeout(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=2d`
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=5d`
     );
     
     if (!response.ok) return null;
@@ -100,20 +106,39 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
     
     const meta = result.meta;
     const price = meta?.regularMarketPrice;
-    const previousClose = meta?.chartPreviousClose || meta?.previousClose;
+    const prevClose = meta?.chartPreviousClose || meta?.previousClose;
     
     if (!price) return null;
     
-    const isPercentage = symbol === '%5ETNX' || symbol === '^TNX';
-    const change = previousClose 
+    const isPercentage = symbol === '%5ETNX' || symbol === '^TNX' || symbol === '^IRX';
+    const change = prevClose 
       ? isPercentage 
-        ? price - previousClose
-        : ((price - previousClose) / previousClose) * 100 
+        ? price - prevClose
+        : ((price - prevClose) / prevClose) * 100 
       : 0;
+    
+    const chartData: { time: string; price: number }[] = [];
+    const timestamps = result.timestamp;
+    const quotes = result.indicators?.quote?.[0];
+    
+    if (timestamps && quotes?.close) {
+      for (let i = 0; i < timestamps.length; i++) {
+        const closePrice = quotes.close[i];
+        if (closePrice !== null && closePrice !== undefined) {
+          const date = new Date(timestamps[i] * 1000);
+          chartData.push({
+            time: date.toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            price: closePrice
+          });
+        }
+      }
+    }
     
     return { 
       price, 
-      change: parseFloat(change.toFixed(2)) 
+      change: parseFloat(change.toFixed(2)),
+      previousClose: prevClose,
+      chartData: chartData.length > 0 ? chartData : undefined
     };
   } catch (error) {
     console.error(`Failed to fetch ${symbol}:`, error);
@@ -485,7 +510,7 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '금',
     category: 'commodity',
     getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => `$${p.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+    formatPrice: (p) => `${Math.round(p * cachedUsdKrw).toLocaleString('ko-KR')}원/oz`,
     messages: {
       sunny: '금값이 올랐어요! 안전자산 인기 상승!',
       rainy: '금값이 내렸어요. 세상이 평화로운가 봐요.',
@@ -498,7 +523,7 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '은',
     category: 'commodity',
     getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => `$${p.toFixed(2)}`,
+    formatPrice: (p) => `${Math.round(p * cachedUsdKrw).toLocaleString('ko-KR')}원/oz`,
     messages: {
       sunny: '은값이 올랐어요!',
       rainy: '은값이 내렸어요.',
@@ -632,6 +657,56 @@ function generateMockData(id: AssetType): { price: number; change: number } {
   };
 }
 
+function formatChangePoints(id: AssetType, price: number, change: number, previousClose?: number): { points: number; display: string } {
+  let points = 0;
+  
+  if (id === 'feargreed') {
+    points = change;
+  } else if (previousClose && previousClose > 0) {
+    points = price - previousClose;
+  } else if (change !== 0 && change > -100) {
+    const previousPrice = price / (1 + change / 100);
+    points = price - previousPrice;
+  } else if (change !== 0) {
+    points = change;
+  }
+  
+  const isIndex = ['kospi', 'kosdaq', 'sp500'].includes(id);
+  const isCurrency = ['usdkrw', 'jpykrw', 'cnykrw', 'eurkrw'].includes(id);
+  const isBonds = ['bonds', 'bonds2y'].includes(id);
+  const isCrypto = ['bitcoin', 'ethereum'].includes(id);
+  
+  let display = '';
+  const sign = points >= 0 ? '+' : '';
+  
+  if (id === 'feargreed') {
+    display = `${sign}${Math.round(points)}점`;
+  } else if (isIndex) {
+    display = `${sign}${points.toFixed(2)}pt`;
+  } else if (isCurrency) {
+    if (id === 'jpykrw') {
+      display = `${sign}${points.toFixed(2)}원`;
+    } else {
+      display = `${sign}${points.toFixed(0)}원`;
+    }
+  } else if (isBonds) {
+    display = `${sign}${points.toFixed(2)}%p`;
+  } else if (isCrypto) {
+    display = `${sign}$${Math.abs(points).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  } else if (id === 'gold' || id === 'silver') {
+    const krwPoints = points * cachedUsdKrw;
+    display = `${sign}${Math.round(krwPoints).toLocaleString('ko-KR')}원`;
+  } else if (id === 'gasoline' || id === 'diesel') {
+    display = `${sign}${Math.round(points)}원`;
+  } else if (id === 'kbrealestate') {
+    display = `${sign}${points.toFixed(2)}`;
+  } else {
+    display = `${sign}${points.toFixed(2)}`;
+  }
+  
+  return { points, display };
+}
+
 export function convertToAssetData(rawData: RawMarketData): AssetData[] {
   const assets: AssetData[] = [];
   const assetIds = Object.keys(assetConfigs) as AssetType[];
@@ -645,22 +720,32 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       data = generateMockData(id);
     }
     
+    let priceForDisplay = data.price;
+    let chartData = data.chartData;
+    
     if (id === 'jpykrw') {
-      data = { price: data.price * 100, change: data.change };
+      priceForDisplay = data.price * 100;
+      if (chartData) {
+        chartData = chartData.map(d => ({ ...d, price: d.price * 100 }));
+      }
     }
     
-    const status = config.getStatus(data.price, data.change);
+    const { points, display } = formatChangePoints(id, priceForDisplay, data.change, data.previousClose);
+    const status = config.getStatus(priceForDisplay, data.change);
     
     assets.push({
       id,
       name: config.name,
       category: config.category,
-      price: data.price,
+      price: priceForDisplay,
       priceDisplay: config.formatPrice(data.price),
       change: data.change,
+      changePoints: points,
+      changePointsDisplay: display,
       status,
       message: config.messages[status],
       advice: config.advice,
+      chartData,
     });
   }
 

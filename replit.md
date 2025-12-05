@@ -15,6 +15,10 @@ A mobile-first financial dashboard that translates complex economic data into we
 - Detail modal with "머니 박사의 조언" (Dr. Money's Advice)
 - Real-time market data from free APIs (no API keys required)
 - **Drag-and-drop card reordering** with localStorage persistence
+- **Dual badge display**: Each card shows BOTH percentage change (e.g., "+1.58%") AND point change (e.g., "+64.44pt")
+- **Gold/Silver in KRW**: Converted from USD using cached exchange rate (e.g., "6,244,294원/oz")
+- **Enhanced typography**: Larger font sizes for better readability
+- **Interactive price charts**: 5-day historical charts in detail modal using Recharts
 
 ## Architecture
 
@@ -137,7 +141,6 @@ Uses @dnd-kit library for card reordering:
 - Weather metaphors for financial concepts
 
 ## Future Enhancements
-- Historical price charts
 - Push notifications for status changes
 - Personalized portfolio tracking
 - Educational content library

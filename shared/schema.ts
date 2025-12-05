@@ -35,9 +35,12 @@ export interface AssetData {
   price: number;
   priceDisplay: string;
   change: number;
+  changePoints: number;
+  changePointsDisplay: string;
   status: WeatherStatus;
   message: string;
   advice: string;
+  chartData?: { time: string; price: number }[];
 }
 
 export interface MarketDataResponse {
@@ -62,9 +65,15 @@ export const assetDataSchema = z.object({
   price: z.number(),
   priceDisplay: z.string(),
   change: z.number(),
+  changePoints: z.number(),
+  changePointsDisplay: z.string(),
   status: z.enum(['sunny', 'rainy', 'cloudy', 'thunder']),
   message: z.string(),
   advice: z.string(),
+  chartData: z.array(z.object({
+    time: z.string(),
+    price: z.number(),
+  })).optional(),
 });
 
 export const marketDataResponseSchema = z.object({
