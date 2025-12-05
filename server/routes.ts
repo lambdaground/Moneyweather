@@ -20,8 +20,7 @@ export async function registerRoutes(
   // Force refresh market data (bypasses cache)
   app.post("/api/market/refresh", async (req, res) => {
     try {
-      // Clear cache by getting fresh data
-      const data = await storage.getMarketData();
+      const data = await storage.refreshMarketData();
       res.json(data);
     } catch (error) {
       console.error("Error refreshing market data:", error);

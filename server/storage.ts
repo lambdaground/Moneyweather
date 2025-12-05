@@ -7,6 +7,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getMarketData(): Promise<MarketDataResponse>;
+  refreshMarketData(): Promise<MarketDataResponse>;
 }
 
 export class MemStorage implements IStorage {
@@ -47,12 +48,21 @@ export class MemStorage implements IStorage {
     }
 
     // Generate new data
+    return this.generateAndCacheData();
+  }
+
+  async refreshMarketData(): Promise<MarketDataResponse> {
+    // Force regeneration - bypass cache
+    return this.generateAndCacheData();
+  }
+
+  private generateAndCacheData(): MarketDataResponse {
     const assets = generateMarketData();
     this.cachedMarketData = {
       assets,
       generatedAt: new Date().toISOString(),
     };
-    this.lastGenerated = now;
+    this.lastGenerated = Date.now();
 
     return this.cachedMarketData;
   }
