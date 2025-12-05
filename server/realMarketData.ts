@@ -353,6 +353,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     feargreed,
     kospi,
     kosdaq,
+    nasdaq,
     sp500,
     gold,
     silver,
@@ -367,6 +368,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchFearGreed(),
     fetchYahooFinance('^KS11'),
     fetchYahooFinance('^KQ11'),
+    fetchYahooFinance('^IXIC'),
     fetchYahooFinance('^GSPC'),
     fetchYahooFinance('GC=F'),
     fetchYahooFinance('SI=F'),
@@ -383,6 +385,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     feargreed,
     kospi, 
     kosdaq,
+    nasdaq,
     sp500,
     gold, 
     silver,
@@ -552,6 +555,19 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     },
     advice: '코스닥은 중소기업 중심이라 변동성이 커요. 신중하게 투자하세요.',
   },
+  nasdaq: {
+    name: '나스닥',
+    category: 'index',
+    getStatus: (_, change) => getIndexStatus(change),
+    formatPrice: (p) => `${p.toLocaleString('en-US', { maximumFractionDigits: 2 })} pt`,
+    messages: {
+      sunny: '나스닥이 불타오르고 있어요!',
+      rainy: '나스닥이 쉬어가는 중이에요.',
+      cloudy: '나스닥이 조용하네요.',
+      thunder: '나스닥이 요동쳐요! 기술주 주의보!',
+    },
+    advice: '나스닥은 애플, 구글, 마이크로소프트 등 미국 기술주 중심 지수예요. 변동성이 크지만 성장 잠재력도 높아요.',
+  },
   sp500: {
     name: 'S&P 500',
     category: 'index',
@@ -718,6 +734,7 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     feargreed: { base: 50, volatility: 20 },
     kospi: { base: 2500, volatility: 100 },
     kosdaq: { base: 850, volatility: 50 },
+    nasdaq: { base: 19500, volatility: 300 },
     sp500: { base: 6000, volatility: 100 },
     gold: { base: 2650, volatility: 80 },
     silver: { base: 31, volatility: 2 },
@@ -755,7 +772,7 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
     points = change;
   }
   
-  const isIndex = ['kospi', 'kosdaq', 'sp500'].includes(id);
+  const isIndex = ['kospi', 'kosdaq', 'nasdaq', 'sp500'].includes(id);
   const isCurrency = ['usdkrw', 'jpykrw', 'cnykrw', 'eurkrw'].includes(id);
   const isBonds = ['bonds', 'bonds2y'].includes(id);
   const isCrypto = ['bitcoin', 'ethereum'].includes(id);

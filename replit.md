@@ -5,7 +5,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 
 ## Current State
 **Status**: MVP Complete with Real Market Data
-- 17 financial assets displayed as weather cards with live data
+- 18 financial assets displayed as weather cards with live data
 - 5 category filters: 환율, 지수, 원자재, 코인, 금리
 - 4 weather status filters: 맑음, 흐림, 비, 번개
 - Live timestamp showing data freshness
@@ -26,7 +26,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 - **Interactive price charts**: 5-day historical charts in detail modal using Recharts
 - **Market status indicators**: Real-time market open/close status for stock indices
   - KOSPI/KOSDAQ: 장 중 (9:00-15:30 KST), 장 전 (8:00-9:00), 장 마감
-  - S&P 500: 장 중 (23:30-06:00 KST), 프리마켓 (18:00-23:30), 애프터마켓 (06:00-10:00), 장 마감
+  - NASDAQ/S&P 500: 장 중 (9:30-16:00 EST), 프리마켓 (4:00-9:30 EST), 애프터마켓 (16:00-20:00 EST), 장 마감
   - Countdown timer shows "X시간 Y분 후 개장" when market is closed
 
 ## Architecture
@@ -55,6 +55,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Fear & Greed | Alternative.me | /fng/?limit=2 (free, no key) |
 | KOSPI | Yahoo Finance | ^KS11 chart data |
 | KOSDAQ | Yahoo Finance | ^KQ11 chart data |
+| NASDAQ | Yahoo Finance | ^IXIC chart data |
 | S&P 500 | Yahoo Finance | ^GSPC chart data |
 | Gold | Yahoo Finance | GC=F (Gold Futures) |
 | Silver | Yahoo Finance | SI=F (Silver Futures) |
@@ -85,12 +86,13 @@ A mobile-first financial dashboard that translates complex economic data into we
 | CNY/KRW | < 200 KRW | > 220 KRW | between |
 | EUR/KRW | < 1550 KRW | > 1700 KRW | between |
 
-### Index (지수) - 4 assets
+### Index (지수) - 5 assets
 | Asset | Sunny | Rainy | Thunder |
 |-------|-------|-------|---------|
 | Fear & Greed | Score >= 70 | Score 30-49 | Score < 30 or \|Change\| >= 15 |
 | KOSPI | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 | KOSDAQ | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
+| NASDAQ | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 | S&P 500 | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
 
 ### Commodity (원자재) - 5 assets

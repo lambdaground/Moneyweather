@@ -176,7 +176,7 @@ export function getUSMarketStatus(): MarketStatusInfo {
 export function getMarketStatusForAsset(assetId: string): MarketStatusInfo | null {
   if (assetId === 'kospi' || assetId === 'kosdaq') {
     return getKoreanMarketStatus();
-  } else if (assetId === 'sp500') {
+  } else if (assetId === 'sp500' || assetId === 'nasdaq') {
     return getUSMarketStatus();
   }
   return null;
