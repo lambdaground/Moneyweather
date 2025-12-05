@@ -249,44 +249,93 @@ async function fetchKoreanFuelPrices(): Promise<Record<string, { price: number; 
   }
 }
 
-let previousKBRealEstatePrice: number | null = null;
+let previousRealEstatePrice: number | null = null;
 
-async function fetchKBRealEstate(): Promise<{ price: number; change: number } | null> {
+async function fetchRealEstateIndex(): Promise<{ price: number; change: number } | null> {
   try {
-    const response = await fetchWithTimeout(
-      'https://data-api.kbland.kr/bfmstat/weekMnthlyHus498/priceIndexList?월간주간구분코드=01&매물종별구분=01&매매전세코드=01&기간=1',
-      8000
-    );
+    const apiKey = process.env.REB_API_KEY;
+    if (!apiKey) {
+      console.log('REB API key not configured');
+      return null;
+    }
+    
+    // 부동산통계정보시스템 API - 주택종합 매매가격지수
+    const url = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?STATBL_ID=A_2024_00900&DTACYCLE_CD=YY&WRTTIME_IDTFR_ID=2022&Type=json&serviceKey=${apiKey}`;
+    
+    const response = await fetchWithTimeout(url, 10000);
     
     if (!response.ok) {
-      console.log('KB Real Estate API not accessible');
+      console.log('REB Real Estate API not accessible, status:', response.status);
       return null;
     }
     
     const data = await response.json();
-    const priceData = data.dataBody?.data;
     
-    if (!priceData || !Array.isArray(priceData) || priceData.length === 0) {
+    // API 응답 구조: {"SttsApiTblData": [{"head": [...]}, {"row": [...]}]}
+    const apiData = data.SttsApiTblData;
+    if (!apiData || !Array.isArray(apiData) || apiData.length < 2) {
+      console.log('Unexpected REB API response structure');
       return null;
     }
     
-    const latest = priceData[priceData.length - 1];
-    const price = parseFloat(latest.전국) || 100;
+    const rowSection = apiData.find((item: any) => item.row);
+    const items = rowSection?.row || [];
     
-    const change = previousKBRealEstatePrice
-      ? ((price - previousKBRealEstatePrice) / previousKBRealEstatePrice) * 100
-      : (priceData.length > 1 
-          ? ((price - parseFloat(priceData[priceData.length - 2].전국)) / parseFloat(priceData[priceData.length - 2].전국)) * 100
-          : 0);
+    if (!items || items.length === 0) {
+      console.log('No row data in REB API response');
+      return null;
+    }
     
-    previousKBRealEstatePrice = price;
+    // 전국 데이터 찾기 (CLS_FULLNM이 '전국'으로 시작하는 항목)
+    let nationalData = items.find((item: any) => 
+      item.CLS_NM === '전국' || 
+      item.CLS_FULLNM === '전국' ||
+      (item.CLS_FULLNM && item.CLS_FULLNM.startsWith('전국'))
+    );
+    
+    // 전국 데이터가 없으면 서울 데이터 찾기
+    if (!nationalData) {
+      nationalData = items.find((item: any) => 
+        item.CLS_FULLNM && item.CLS_FULLNM.startsWith('서울')
+      );
+    }
+    
+    // 서울도 없으면 모든 지역의 평균 계산
+    let price: number;
+    if (!nationalData) {
+      const validItems = items.filter((item: any) => 
+        item.DTA_VAL && !isNaN(parseFloat(item.DTA_VAL))
+      );
+      
+      if (validItems.length === 0) {
+        console.log('No valid data items in REB API response');
+        return null;
+      }
+      
+      const sum = validItems.reduce((acc: number, item: any) => 
+        acc + parseFloat(item.DTA_VAL), 0
+      );
+      price = sum / validItems.length;
+      console.log(`REB: Using average of ${validItems.length} regions: ${price.toFixed(2)}`);
+    } else {
+      price = parseFloat(nationalData.DTA_VAL);
+      console.log(`REB: Found data for ${nationalData.CLS_FULLNM || nationalData.CLS_NM}: ${price}`);
+    }
+    
+    const change = previousRealEstatePrice
+      ? ((price - previousRealEstatePrice) / previousRealEstatePrice) * 100
+      : 0;
+    
+    previousRealEstatePrice = price;
+    
+    console.log('Real Estate Index fetched:', { price: price.toFixed(2), change: change.toFixed(2) });
     
     return { 
       price,
       change: parseFloat(change.toFixed(2))
     };
   } catch (error) {
-    console.log('KB Real Estate API unavailable, using mock data');
+    console.log('REB Real Estate API error:', error);
     return null;
   }
 }
@@ -315,7 +364,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchYahooFinance('GC=F'),
     fetchYahooFinance('SI=F'),
     fetchKoreanFuelPrices(),
-    fetchKBRealEstate(),
+    fetchRealEstateIndex(),
     fetchCrypto('bitcoin'),
     fetchCrypto('ethereum'),
     fetchYahooFinance('^TNX'),

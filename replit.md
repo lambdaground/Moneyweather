@@ -13,7 +13,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 - Mobile-first responsive design
 - Dark/light mode support
 - Detail modal with "머니 박사의 조언" (Dr. Money's Advice)
-- Real-time market data from free APIs (no API keys required)
+- Real-time market data from multiple APIs (including Korean government APIs)
 - **Drag-and-drop card reordering** with localStorage persistence
 - **Dual badge display**: Each card shows BOTH percentage change (e.g., "+1.58%") AND point change (e.g., "+64.44pt")
 - **Gold/Silver in 한 돈 (3.75g)**: Prices shown per 돈 unit with separate buy/sell prices
@@ -52,9 +52,9 @@ A mobile-first financial dashboard that translates complex economic data into we
 | S&P 500 | Yahoo Finance | ^GSPC chart data |
 | Gold | Yahoo Finance | GC=F (Gold Futures) |
 | Silver | Yahoo Finance | SI=F (Silver Futures) |
-| Gasoline (휘발유) | Opinet (오피넷) | avgAllPrice (requires API key, mock fallback) |
-| Diesel (경유) | Opinet (오피넷) | avgAllPrice (requires API key, mock fallback) |
-| KB Real Estate | KB부동산 | priceIndexList (mock fallback) |
+| Gasoline (휘발유) | Opinet (오피넷) | avgAllPrice (OPINET_API_KEY required) |
+| Diesel (경유) | Opinet (오피넷) | avgAllPrice (OPINET_API_KEY required) |
+| 주택가격지수 | 부동산통계정보시스템 (REB) | SttsApiTblData (REB_API_KEY required) |
 | Bitcoin | CoinGecko | simple/price (free, no key) |
 | Ethereum | CoinGecko | simple/price (free, no key) |
 | 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
