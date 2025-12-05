@@ -8,22 +8,25 @@ interface SortableWeatherCardProps {
   asset: AssetData;
   onClick: () => void;
   isEditMode: boolean;
+  isDragging?: boolean;
 }
 
-export default function SortableWeatherCard({ asset, onClick, isEditMode }: SortableWeatherCardProps) {
+export default function SortableWeatherCard({ asset, onClick, isEditMode, isDragging: externalDragging }: SortableWeatherCardProps) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-    isDragging,
+    isDragging: sortableIsDragging,
   } = useSortable({ id: asset.id });
+
+  const isDragging = sortableIsDragging || externalDragging;
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0 : 1,
     zIndex: isDragging ? 1000 : 1,
   };
 
@@ -35,13 +38,14 @@ export default function SortableWeatherCard({ asset, onClick, isEditMode }: Sort
     <div 
       ref={setNodeRef} 
       style={style}
-      className="relative"
+      {...attributes}
+      {...listeners}
+      data-testid={`draggable-card-${asset.id}`}
+      className="relative cursor-grab active:cursor-grabbing touch-none"
     >
-      <div
-        {...attributes}
-        {...listeners}
+      <div 
         data-testid={`drag-handle-${asset.id}`}
-        className="absolute top-2 right-2 z-10 p-2 rounded-md bg-background/80 backdrop-blur cursor-grab active:cursor-grabbing touch-none"
+        className="absolute top-2 right-2 z-10 p-2 rounded-md bg-background/80 backdrop-blur pointer-events-none"
       >
         <GripVertical className="w-5 h-5 text-muted-foreground" />
       </div>

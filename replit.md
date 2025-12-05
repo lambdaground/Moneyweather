@@ -14,6 +14,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 - Dark/light mode support
 - Detail modal with "머니 박사의 조언" (Dr. Money's Advice)
 - Real-time market data from free APIs (no API keys required)
+- **Drag-and-drop card reordering** with localStorage persistence
 
 ## Architecture
 
@@ -104,22 +105,30 @@ A mobile-first financial dashboard that translates complex economic data into we
 ```
 client/src/
 ├── components/
-│   ├── CategoryFilter.tsx # Category filter buttons (환율, 지수, etc.)
-│   ├── WeatherFilter.tsx  # Weather status filter (맑음, 흐림, 비, 번개)
-│   ├── WeatherCard.tsx    # Main weather card component
-│   ├── DetailModal.tsx    # Dr. Money advice modal
-│   └── Header.tsx         # App header with controls
+│   ├── CategoryFilter.tsx     # Category filter buttons (환율, 지수, etc.)
+│   ├── WeatherFilter.tsx      # Weather status filter (맑음, 흐림, 비, 번개)
+│   ├── WeatherCard.tsx        # Main weather card component
+│   ├── SortableWeatherCard.tsx # Draggable wrapper for WeatherCard
+│   ├── DetailModal.tsx        # Dr. Money advice modal
+│   └── Header.tsx             # App header with controls
 ├── pages/
-│   └── Dashboard.tsx      # Main dashboard page with dual filtering
+│   └── Dashboard.tsx          # Main dashboard with DnD context & filtering
 ├── lib/
-│   └── marketData.ts      # Types and utilities
+│   └── marketData.ts          # Types and utilities
 server/
-├── routes.ts              # API routes
-├── storage.ts             # In-memory storage with caching
-├── realMarketData.ts      # Real API integration service
+├── routes.ts                  # API routes
+├── storage.ts                 # In-memory storage with caching
+├── realMarketData.ts          # Real API integration service
 shared/
-└── schema.ts              # Shared types and schemas
+└── schema.ts                  # Shared types and schemas
 ```
+
+## Drag-and-Drop Implementation
+Uses @dnd-kit library for card reordering:
+- `DndContext` with `DragOverlay` in Dashboard.tsx
+- `SortableContext` with `rectSortingStrategy` for grid layout
+- Card order saved to localStorage key: `moneyweather_card_order`
+- Edit mode toggle disables auto-refresh to prevent data races
 
 ## User Preferences
 - Korean language UI

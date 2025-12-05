@@ -9,7 +9,9 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -18,6 +20,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import SortableWeatherCard from '@/components/SortableWeatherCard';
+import WeatherCard from '@/components/WeatherCard';
 import DetailModal from '@/components/DetailModal';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
@@ -40,6 +43,7 @@ export default function Dashboard() {
   const [timeAgo, setTimeAgo] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [cardOrder, setCardOrder] = useState<string[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -173,26 +177,33 @@ export default function Dashboard() {
 
   const handleToggleEditMode = () => {
     setIsEditMode(prev => !prev);
+    setActiveId(null);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
     
     if (over && active.id !== over.id) {
-      const oldIndex = sortedAssets.findIndex(a => a.id === active.id);
-      const newIndex = sortedAssets.findIndex(a => a.id === over.id);
+      const dragActiveId = String(active.id);
+      const dragOverId = String(over.id);
+      const currentIds = sortedAssets.map(a => a.id);
+      const oldIndex = currentIds.findIndex(id => id === dragActiveId);
+      const newIndex = currentIds.findIndex(id => id === dragOverId);
       
       if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = arrayMove(
-          sortedAssets.map(a => a.id),
-          oldIndex,
-          newIndex
-        );
+        const newOrder = arrayMove(currentIds, oldIndex, newIndex);
         setCardOrder(newOrder);
         localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(newOrder));
       }
     }
   };
+
+  const activeAsset = activeId ? sortedAssets.find(a => a.id === activeId) : null;
 
   const getSummaryMessage = () => {
     if (allAssets.length === 0) return '';
@@ -298,6 +309,7 @@ export default function Dashboard() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
             <SortableContext 
@@ -319,10 +331,19 @@ export default function Dashboard() {
                     asset={asset}
                     onClick={() => handleCardClick(asset)}
                     isEditMode={isEditMode}
+                    isDragging={activeId === asset.id}
                   />
                 ))}
               </div>
             </SortableContext>
+            <DragOverlay>
+              {activeAsset ? (
+                <WeatherCard
+                  asset={activeAsset}
+                  onClick={() => {}}
+                />
+              ) : null}
+            </DragOverlay>
           </DndContext>
         )}
 
