@@ -16,8 +16,11 @@ A mobile-first financial dashboard that translates complex economic data into we
 - Real-time market data from free APIs (no API keys required)
 - **Drag-and-drop card reordering** with localStorage persistence
 - **Dual badge display**: Each card shows BOTH percentage change (e.g., "+1.58%") AND point change (e.g., "+64.44pt")
-- **Gold/Silver in KRW**: Converted from USD using cached exchange rate (e.g., "6,244,294원/oz")
-- **Enhanced typography**: Larger font sizes for better readability
+- **Gold/Silver in 한 돈 (3.75g)**: Prices shown per 돈 unit with separate buy/sell prices
+  - 1 돈 = 3.75g, Conversion: price_per_don = price_per_oz * (3.75 / 31.1035)
+  - 살 때 (customer buys) = dealer's sell price (higher, +3% for gold, +5% for silver)
+  - 팔 때 (customer sells) = dealer's buy price (lower, -3% for gold, -5% for silver)
+- **Enhanced typography**: Larger font sizes for filter buttons (text-base) and icons (w-5 h-5)
 - **Interactive price charts**: 5-day historical charts in detail modal using Recharts
 
 ## Architecture
