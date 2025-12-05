@@ -1,11 +1,12 @@
 import { Button } from '@/components/ui/button';
-import { Banknote, TrendingUp, Gem, Landmark } from 'lucide-react';
+import { Banknote, TrendingUp, Gem, Landmark, LayoutGrid } from 'lucide-react';
 import { SiBitcoin } from 'react-icons/si';
 import type { AssetCategory } from '@/lib/marketData';
 
 interface CategoryFilterProps {
   selectedCategories: AssetCategory[];
   onToggleCategory: (category: AssetCategory) => void;
+  onSelectAll: () => void;
 }
 
 const categoryConfig: Record<AssetCategory, { name: string; icon: typeof Banknote }> = {
@@ -16,15 +17,28 @@ const categoryConfig: Record<AssetCategory, { name: string; icon: typeof Banknot
   bonds: { name: '금리', icon: Landmark },
 };
 
-export default function CategoryFilter({ selectedCategories, onToggleCategory }: CategoryFilterProps) {
-  const allCategories: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
+const allCategories: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
+
+export default function CategoryFilter({ selectedCategories, onToggleCategory, onSelectAll }: CategoryFilterProps) {
+  const allSelected = selectedCategories.length === allCategories.length;
   
   return (
     <div className="flex flex-wrap gap-2 justify-center">
+      <Button
+        data-testid="button-filter-all"
+        variant={allSelected ? "default" : "outline"}
+        size="sm"
+        onClick={onSelectAll}
+        className="gap-1.5"
+      >
+        <LayoutGrid className="w-4 h-4" />
+        <span>전체</span>
+      </Button>
+      
       {allCategories.map((category) => {
         const config = categoryConfig[category];
         const Icon = config.icon;
-        const isSelected = selectedCategories.includes(category);
+        const isSelected = selectedCategories.length === 1 && selectedCategories.includes(category);
         
         return (
           <Button

@@ -64,14 +64,23 @@ export default function Dashboard() {
     localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
   };
 
+  const allCats: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
+  const allSelected = selectedCategories.length === allCats.length;
+  
   const handleToggleCategory = (category: AssetCategory) => {
     setSelectedCategories(prev => {
-      if (prev.includes(category)) {
-        if (prev.length === 1) return prev;
-        return prev.filter(c => c !== category);
+      const isOnlyThisSelected = prev.length === 1 && prev[0] === category;
+      
+      if (isOnlyThisSelected) {
+        return allCats;
       }
-      return [...prev, category];
+      
+      return [category];
     });
+  };
+  
+  const handleSelectAll = () => {
+    setSelectedCategories(allCats);
   };
 
   const handleCardClick = (asset: AssetData) => {
@@ -125,6 +134,7 @@ export default function Dashboard() {
         <CategoryFilter
           selectedCategories={selectedCategories}
           onToggleCategory={handleToggleCategory}
+          onSelectAll={handleSelectAll}
         />
 
         {assets.length > 0 && (

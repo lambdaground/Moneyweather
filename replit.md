@@ -5,7 +5,9 @@ A mobile-first financial dashboard that translates complex economic data into we
 
 ## Current State
 **Status**: MVP Complete with Real Market Data
-- 5 financial assets displayed as weather cards with live data
+- 14 financial assets displayed as weather cards with live data
+- 5 category filters: 환율, 지수, 원자재, 코인, 금리
+- Live timestamp showing data freshness
 - Korean language UI throughout
 - Mobile-first responsive design
 - Dark/light mode support
@@ -24,7 +26,7 @@ A mobile-first financial dashboard that translates complex economic data into we
 ### Frontend
 - React with TypeScript
 - Tailwind CSS for styling
-- React Query for data fetching
+- React Query for data fetching with 30-second auto-refresh
 - Wouter for routing
 - Shadcn UI components
 
@@ -32,10 +34,19 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Asset | API Source | Endpoint |
 |-------|-----------|----------|
 | USD/KRW | ExchangeRate-API | v4/latest/USD (free, no key) |
+| JPY/KRW | ExchangeRate-API | Calculated from USD rates |
+| CNY/KRW | ExchangeRate-API | Calculated from USD rates |
+| EUR/KRW | ExchangeRate-API | Calculated from USD rates |
 | KOSPI | Yahoo Finance | ^KS11 chart data |
+| KOSDAQ | Yahoo Finance | ^KQ11 chart data |
+| S&P 500 | Yahoo Finance | ^GSPC chart data |
 | Gold | Yahoo Finance | GC=F (Gold Futures) |
+| Silver | Yahoo Finance | SI=F (Silver Futures) |
+| Oil (WTI) | Yahoo Finance | CL=F (Crude Oil Futures) |
 | Bitcoin | CoinGecko | simple/price (free, no key) |
+| Ethereum | CoinGecko | simple/price (free, no key) |
 | 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
+| 2Y Bonds | Yahoo Finance | ^IRX (US 2Y Treasury) |
 
 ### Data Flow
 1. Server fetches real market data from multiple free APIs
@@ -44,21 +55,49 @@ A mobile-first financial dashboard that translates complex economic data into we
 4. User can force refresh to get latest data
 5. If any API fails, fallback to mock data for that asset
 6. Click card to see detailed advice in modal
+7. Category filter allows focusing on specific asset types
 
-## Asset Types & Weather Logic
+## Asset Categories & Weather Logic
 
-| Asset | Sunny (Good) | Rainy (Bad) | Thunder (Volatile) |
-|-------|-------------|-------------|-------------------|
-| USD/KRW | < 1350 KRW | > 1400 KRW | - |
+### Currency (환율) - 4 assets
+| Asset | Sunny | Rainy | Cloudy |
+|-------|-------|-------|--------|
+| USD/KRW | < 1350 KRW | > 1400 KRW | between |
+| JPY/KRW | < 900 /100엔 | > 950 /100엔 | between |
+| CNY/KRW | < 200 KRW | > 220 KRW | between |
+| EUR/KRW | < 1550 KRW | > 1700 KRW | between |
+
+### Index (지수) - 3 assets
+| Asset | Sunny | Rainy | Thunder |
+|-------|-------|-------|---------|
 | KOSPI | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
-| Gold | Change > 1% | Change < -1% | - |
+| KOSDAQ | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
+| S&P 500 | Change > 0.5% | Change < -0.5% | \|Change\| > 2% |
+
+### Commodity (원자재) - 3 assets
+| Asset | Sunny | Rainy | Cloudy |
+|-------|-------|-------|--------|
+| Gold | Change > 1% | Change < -1% | between |
+| Silver | Change > 1.5% | Change < -1.5% | between |
+| Oil | Change > 1.5% | Change < -1.5% | between |
+
+### Crypto (코인) - 2 assets
+| Asset | Sunny | Rainy | Thunder |
+|-------|-------|-------|---------|
 | Bitcoin | Change > 1% | Change < -1% | \|Change\| > 3% |
-| 10Y Bonds | Change > 0.1% | Change < -0.1% | - |
+| Ethereum | Change > 1% | Change < -1% | \|Change\| > 3% |
+
+### Bonds (금리) - 2 assets
+| Asset | Sunny | Rainy | Cloudy |
+|-------|-------|-------|--------|
+| 10Y Treasury | Change > 0.1% | Change < -0.1% | between |
+| 2Y Treasury | Change > 0.1% | Change < -0.1% | between |
 
 ## File Structure
 ```
 client/src/
 ├── components/
+│   ├── CategoryFilter.tsx # Category filter buttons
 │   ├── WeatherCard.tsx    # Main weather card component
 │   ├── DetailModal.tsx    # Dr. Money advice modal
 │   └── Header.tsx         # App header with controls
