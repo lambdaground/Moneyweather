@@ -24,6 +24,10 @@ A mobile-first financial dashboard that translates complex economic data into we
   - Conversion: gangnam_price = (index / 100) × 25억원 (Gangnam 30-pyeong baseline)
 - **Enhanced typography**: Larger font sizes for filter buttons (text-base) and icons (w-5 h-5)
 - **Interactive price charts**: 5-day historical charts in detail modal using Recharts
+- **Market status indicators**: Real-time market open/close status for stock indices
+  - KOSPI/KOSDAQ: 장 중 (9:00-15:30 KST), 장 전 (8:00-9:00), 장 마감
+  - S&P 500: 장 중 (23:30-06:00 KST), 프리마켓 (18:00-23:30), 애프터마켓 (06:00-10:00), 장 마감
+  - Countdown timer shows "X시간 Y분 후 개장" when market is closed
 
 ## Architecture
 

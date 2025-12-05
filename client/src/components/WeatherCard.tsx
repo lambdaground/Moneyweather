@@ -1,7 +1,9 @@
-import { Sun, CloudRain, Cloud, Zap, TrendingUp, TrendingDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sun, CloudRain, Cloud, Zap, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { AssetData, WeatherStatus } from '@/lib/marketData';
+import { getMarketStatusForAsset, type MarketStatusInfo } from '@/lib/marketStatus';
 
 interface WeatherCardProps {
   asset: AssetData;
@@ -49,6 +51,19 @@ const WeatherIcon = ({ status, className }: { status: WeatherStatus; className?:
 export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
   const styles = weatherStyles[asset.status];
   const isPositive = asset.change >= 0;
+  const [marketStatus, setMarketStatus] = useState<MarketStatusInfo | null>(null);
+
+  useEffect(() => {
+    const status = getMarketStatusForAsset(asset.id);
+    setMarketStatus(status);
+
+    if (status) {
+      const interval = setInterval(() => {
+        setMarketStatus(getMarketStatusForAsset(asset.id));
+      }, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [asset.id]);
 
   return (
     <Card
@@ -59,12 +74,39 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
       <div className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h3 
-              data-testid={`text-asset-name-${asset.id}`}
-              className="font-semibold text-foreground truncate"
-            >
-              {asset.name}
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 
+                data-testid={`text-asset-name-${asset.id}`}
+                className="font-semibold text-foreground truncate"
+              >
+                {asset.name}
+              </h3>
+              {marketStatus && (
+                <Badge
+                  data-testid={`badge-market-status-${asset.id}`}
+                  variant="secondary"
+                  className={`text-xs px-1.5 py-0 ${marketStatus.color}`}
+                >
+                  {marketStatus.status === 'open' ? (
+                    <span className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      {marketStatus.label}
+                    </span>
+                  ) : (
+                    marketStatus.label
+                  )}
+                </Badge>
+              )}
+            </div>
+            {marketStatus && marketStatus.nextOpenIn && (
+              <p 
+                data-testid={`text-market-countdown-${asset.id}`}
+                className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"
+              >
+                <Clock className="w-3 h-3" />
+                {marketStatus.nextOpenIn}
+              </p>
+            )}
             <p 
               data-testid={`text-asset-price-${asset.id}`}
               className="text-lg font-bold text-foreground mt-0.5"
