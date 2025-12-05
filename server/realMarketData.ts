@@ -142,9 +142,41 @@ async function fetchCrypto(id: string): Promise<{ price: number; change: number 
   }
 }
 
+let previousFearGreedValue: number | null = null;
+
+async function fetchFearGreed(): Promise<{ price: number; change: number } | null> {
+  try {
+    const response = await fetchWithTimeout(
+      'https://api.alternative.me/fng/?limit=2'
+    );
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const current = data.data?.[0];
+    const previous = data.data?.[1];
+    
+    if (!current) return null;
+    
+    const currentValue = parseInt(current.value, 10);
+    const previousValue = previous ? parseInt(previous.value, 10) : previousFearGreedValue;
+    
+    const change = previousValue !== null ? currentValue - previousValue : 0;
+    previousFearGreedValue = currentValue;
+    
+    return { 
+      price: currentValue,
+      change: parseFloat(change.toFixed(2))
+    };
+  } catch (error) {
+    console.error('Failed to fetch Fear & Greed:', error);
+    return null;
+  }
+}
+
 export async function fetchAllMarketData(): Promise<RawMarketData> {
   const [
     exchangeRates,
+    feargreed,
     kospi,
     kosdaq,
     sp500,
@@ -157,6 +189,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     bonds2y,
   ] = await Promise.all([
     fetchExchangeRates(),
+    fetchFearGreed(),
     fetchYahooFinance('^KS11'),
     fetchYahooFinance('^KQ11'),
     fetchYahooFinance('^GSPC'),
@@ -171,6 +204,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
 
   return { 
     ...exchangeRates,
+    feargreed,
     kospi, 
     kosdaq,
     sp500,
@@ -216,6 +250,14 @@ function getBondsStatus(change: number): WeatherStatus {
   return 'cloudy';
 }
 
+function getFearGreedStatus(value: number, change: number): WeatherStatus {
+  if (Math.abs(change) >= 15) return 'thunder';
+  if (value >= 70) return 'sunny';
+  if (value >= 50) return 'cloudy';
+  if (value >= 30) return 'rainy';
+  return 'thunder';
+}
+
 interface AssetConfig {
   name: string;
   category: AssetCategory;
@@ -238,6 +280,19 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '환율이 요동치고 있어요!',
     },
     advice: '환율이 높을 땐 수출 기업 주식이 좋을 수 있어요! 반대로 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
+  },
+  feargreed: {
+    name: '공포 탐욕 지수',
+    category: 'index',
+    getStatus: (price, change) => getFearGreedStatus(price, change),
+    formatPrice: (p) => `${p.toFixed(0)}점`,
+    messages: {
+      sunny: '탐욕 구간! 시장이 낙관적이에요.',
+      rainy: '공포 구간! 시장이 불안해해요.',
+      cloudy: '중립 구간. 시장이 관망 중이에요.',
+      thunder: '극단적 공포! 대폭락 주의보!',
+    },
+    advice: '공포 지수가 극단적으로 낮을 때가 오히려 매수 기회일 수 있어요. "남들이 공포에 떨 때 탐욕을 부려라"는 워렌 버핏의 말처럼요!',
   },
   jpykrw: {
     name: '일본 엔화',
@@ -416,6 +471,7 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     jpykrw: { base: 9.5, volatility: 0.5 },
     cnykrw: { base: 200, volatility: 10 },
     eurkrw: { base: 1500, volatility: 50 },
+    feargreed: { base: 50, volatility: 20 },
     kospi: { base: 2500, volatility: 100 },
     kosdaq: { base: 850, volatility: 50 },
     sp500: { base: 6000, volatility: 100 },

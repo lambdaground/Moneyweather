@@ -21,7 +21,7 @@ export type WeatherStatus = 'sunny' | 'rainy' | 'cloudy' | 'thunder';
 
 export type AssetType = 
   | 'usdkrw' | 'jpykrw' | 'cnykrw' | 'eurkrw'
-  | 'kospi' | 'kosdaq' | 'sp500'
+  | 'feargreed' | 'kospi' | 'kosdaq' | 'sp500'
   | 'gold' | 'silver' | 'oil'
   | 'bitcoin' | 'ethereum'
   | 'bonds' | 'bonds2y';
