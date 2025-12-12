@@ -440,44 +440,44 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
 // 국고채 금리 조회 (3년물/10년물)
 async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.ECOS_API_KEY;
-  
+
   if (!apiKey) {
     console.log(`ECOS API key not configured, using mock data for ${name}`);
     return null;
   }
-  
+
   try {
     const today = new Date();
     const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
     const startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
     const startDateStr = `${startDate.getFullYear()}${String(startDate.getMonth() + 1).padStart(2, '0')}${String(startDate.getDate()).padStart(2, '0')}`;
-    
+
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/30/817Y002/D/${startDateStr}/${endDate}/${itemCode}`;
-    
+
     console.log(`Fetching ${name} from ECOS API...`);
     const response = await fetchWithTimeout(url, 10000);
-    
+
     if (!response.ok) {
       console.log(`ECOS API for ${name} not accessible, status:`, response.status);
       return null;
     }
-    
+
     const data = await response.json();
-    
+
     if (!data.StatisticSearch || data.StatisticSearch.RESULT) {
       console.log(`ECOS API error for ${name}:`, data.StatisticSearch?.RESULT?.MESSAGE || 'Unknown error');
       return null;
     }
-    
+
     const rows = data.StatisticSearch.row;
     if (!rows || rows.length === 0) {
       console.log(`No data for ${name}`);
       return null;
     }
-    
+
     const latestRow = rows[rows.length - 1];
     const currentRate = parseFloat(latestRow.DATA_VALUE);
-    
+
     let change = 0;
     if (rows.length >= 2) {
       const previousRow = rows[rows.length - 2];
@@ -486,9 +486,9 @@ async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ pr
         change = currentRate - previousRate;
       }
     }
-    
+
     console.log(`${name} fetched:`, { rate: currentRate.toFixed(2) + '%', change: change.toFixed(3) + '%p' });
-    
+
     return { price: currentRate, change: parseFloat(change.toFixed(3)) };
   } catch (error) {
     console.log(`ECOS API error for ${name}:`, error);
@@ -499,35 +499,35 @@ async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ pr
 // 소비자물가지수(CPI) 조회
 async function fetchCPI(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.ECOS_API_KEY;
-  
+
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for CPI');
     return null;
   }
-  
+
   try {
     const today = new Date();
     const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
     const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
     const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
     const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
-    
+
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y009/M/${startDate}/${endDate}/0`;
-    
+
     console.log('Fetching CPI from ECOS API...');
     const response = await fetchWithTimeout(url, 10000);
-    
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     if (!data.StatisticSearch || data.StatisticSearch.RESULT) return null;
-    
+
     const rows = data.StatisticSearch.row;
     if (!rows || rows.length === 0) return null;
-    
+
     const latestRow = rows[rows.length - 1];
     const currentValue = parseFloat(latestRow.DATA_VALUE);
-    
+
     let change = 0;
     if (rows.length >= 2) {
       const previousRow = rows[rows.length - 2];
@@ -536,9 +536,9 @@ async function fetchCPI(): Promise<{ price: number; change: number } | null> {
         change = ((currentValue - previousValue) / previousValue) * 100;
       }
     }
-    
+
     console.log('CPI fetched:', { value: currentValue.toFixed(2), change: change.toFixed(2) + '%' });
-    
+
     return { price: currentValue, change: parseFloat(change.toFixed(2)) };
   } catch (error) {
     console.log('ECOS API error for CPI:', error);
@@ -549,35 +549,35 @@ async function fetchCPI(): Promise<{ price: number; change: number } | null> {
 // 생산자물가지수(PPI) 조회
 async function fetchPPI(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.ECOS_API_KEY;
-  
+
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for PPI');
     return null;
   }
-  
+
   try {
     const today = new Date();
     const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
     const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
     const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
     const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
-    
+
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y010/M/${startDate}/${endDate}/0`;
-    
+
     console.log('Fetching PPI from ECOS API...');
     const response = await fetchWithTimeout(url, 10000);
-    
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     if (!data.StatisticSearch || data.StatisticSearch.RESULT) return null;
-    
+
     const rows = data.StatisticSearch.row;
     if (!rows || rows.length === 0) return null;
-    
+
     const latestRow = rows[rows.length - 1];
     const currentValue = parseFloat(latestRow.DATA_VALUE);
-    
+
     let change = 0;
     if (rows.length >= 2) {
       const previousRow = rows[rows.length - 2];
@@ -586,9 +586,9 @@ async function fetchPPI(): Promise<{ price: number; change: number } | null> {
         change = ((currentValue - previousValue) / previousValue) * 100;
       }
     }
-    
+
     console.log('PPI fetched:', { value: currentValue.toFixed(2), change: change.toFixed(2) + '%' });
-    
+
     return { price: currentValue, change: parseFloat(change.toFixed(2)) };
   } catch (error) {
     console.log('ECOS API error for PPI:', error);
@@ -599,35 +599,35 @@ async function fetchPPI(): Promise<{ price: number; change: number } | null> {
 // 소비자심리지수(CCSI) 조회
 async function fetchCCSI(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.ECOS_API_KEY;
-  
+
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for CCSI');
     return null;
   }
-  
+
   try {
     const today = new Date();
     const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
     const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
     const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
     const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
-    
+
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/511Y002/M/${startDate}/${endDate}/FME/99988`;
-    
+
     console.log('Fetching CCSI from ECOS API...');
     const response = await fetchWithTimeout(url, 10000);
-    
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     if (!data.StatisticSearch || data.StatisticSearch.RESULT) return null;
-    
+
     const rows = data.StatisticSearch.row;
     if (!rows || rows.length === 0) return null;
-    
+
     const latestRow = rows[rows.length - 1];
     const currentValue = parseFloat(latestRow.DATA_VALUE);
-    
+
     let change = 0;
     if (rows.length >= 2) {
       const previousRow = rows[rows.length - 2];
@@ -636,9 +636,9 @@ async function fetchCCSI(): Promise<{ price: number; change: number } | null> {
         change = currentValue - previousValue;
       }
     }
-    
+
     console.log('CCSI fetched:', { value: currentValue.toFixed(1), change: change.toFixed(1) + 'pt' });
-    
+
     return { price: currentValue, change: parseFloat(change.toFixed(1)) };
   } catch (error) {
     console.log('ECOS API error for CCSI:', error);
@@ -803,8 +803,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
   jpykrw: {
     name: '일본 엔화',
     category: 'currency',
-    getStatus: (price) => getCurrencyStatus(price, 9, 10),
-    formatPrice: (p) => `${p.toFixed(2)} KRW/100엔`,
+    getStatus: (price) => getCurrencyStatus(price * 100, 900, 950), // 100엔 기준으로 비교
+    formatPrice: (p) => `${(p * 100).toFixed(2)} KRW/100엔`, // 1엔 -> 100엔 기준으로 변환
     messages: {
       sunny: '일본 여행 찬스! 엔화가 싸요.',
       rainy: '엔화가 비싸졌어요. 일본 여행은 나중에?',
