@@ -1,7 +1,25 @@
 import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "@shared/schema";
 
 interface RawMarketData {
-  [key: string]: { price: number; change: number; previousClose?: number; chartData?: { time: string; price: number }[] } | null;
+  usdkrw: { price: number; change: number } | null;
+  jpykrw: { price: number; change: number } | null;
+  cnykrw: { price: number; change: number } | null;
+  eurkrw: { price: number; change: number } | null;
+  dowjones: { price: number; change: number; chartData?: any[] } | null;
+  kospi: { price: number; change: number; chartData?: any[] } | null;
+  kosdaq: { price: number; change: number; chartData?: any[] } | null;
+  nasdaq: { price: number; change: number; chartData?: any[] } | null;
+  sp500: { price: number; change: number; chartData?: any[] } | null;
+  gold: { price: number; change: number } | null;
+  silver: { price: number; change: number } | null;
+  gasoline: { price: number; change: number } | null;
+  diesel: { price: number; change: number } | null;
+  kbrealestate: { price: number; change: number } | null;
+  bitcoin: { price: number; change: number } | null;
+  ethereum: { price: number; change: number } | null;
+  bonds: { price: number; change: number; previousClose?: number } | null;
+  bonds2y: { price: number; change: number; previousClose?: number } | null;
+  bokrate: { price: number; change: number } | null;
 }
 
 let cachedUsdKrw: number = 1400;
@@ -9,7 +27,7 @@ let cachedUsdKrw: number = 1400;
 async function fetchWithTimeout(url: string, timeout = 5000): Promise<Response> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(id);
@@ -28,30 +46,30 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
       'https://api.exchangerate-api.com/v4/latest/USD'
     );
     if (!response.ok) return { usdkrw: null, jpykrw: null, cnykrw: null, eurkrw: null };
-    
+
     const data = await response.json();
     const krwPerUsd = data.rates?.KRW;
     const jpyPerUsd = data.rates?.JPY;
     const cnyPerUsd = data.rates?.CNY;
     const eurPerUsd = data.rates?.EUR;
-    
+
     if (!krwPerUsd) return { usdkrw: null, jpykrw: null, cnykrw: null, eurkrw: null };
-    
+
     cachedUsdKrw = krwPerUsd;
-    
+
     const rates: Record<string, { price: number; change: number; previousClose?: number } | null> = {};
-    
+
     const usdkrwPrice = krwPerUsd;
     const prevUsdkrw = previousRates.usdkrw || usdkrwPrice;
     rates.usdkrw = {
       price: usdkrwPrice,
-      change: previousRates.usdkrw 
+      change: previousRates.usdkrw
         ? parseFloat((((usdkrwPrice - previousRates.usdkrw) / previousRates.usdkrw) * 100).toFixed(2))
         : 0,
       previousClose: prevUsdkrw
     };
     previousRates.usdkrw = usdkrwPrice;
-    
+
     if (jpyPerUsd) {
       const jpykrwPrice = krwPerUsd / jpyPerUsd;
       rates.jpykrw = {
@@ -62,7 +80,7 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
       };
       previousRates.jpykrw = jpykrwPrice;
     }
-    
+
     if (cnyPerUsd) {
       const cnykrwPrice = krwPerUsd / cnyPerUsd;
       rates.cnykrw = {
@@ -73,7 +91,7 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
       };
       previousRates.cnykrw = cnykrwPrice;
     }
-    
+
     if (eurPerUsd) {
       const eurkrwPrice = krwPerUsd / eurPerUsd;
       rates.eurkrw = {
@@ -84,7 +102,7 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
       };
       previousRates.eurkrw = eurkrwPrice;
     }
-    
+
     return rates;
   } catch (error) {
     console.error('Failed to fetch exchange rates:', error);
@@ -97,30 +115,30 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
     const response = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=5d`
     );
-    
+
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     const result = data.chart?.result?.[0];
     if (!result) return null;
-    
+
     const meta = result.meta;
     const price = meta?.regularMarketPrice;
     const prevClose = meta?.chartPreviousClose || meta?.previousClose;
-    
+
     if (!price) return null;
-    
+
     const isPercentage = symbol === '%5ETNX' || symbol === '^TNX' || symbol === '^IRX';
-    const change = prevClose 
-      ? isPercentage 
+    const change = prevClose
+      ? isPercentage
         ? price - prevClose
-        : ((price - prevClose) / prevClose) * 100 
+        : ((price - prevClose) / prevClose) * 100
       : 0;
-    
+
     const chartData: { time: string; price: number }[] = [];
     const timestamps = result.timestamp;
     const quotes = result.indicators?.quote?.[0];
-    
+
     if (timestamps && quotes?.close) {
       for (let i = 0; i < timestamps.length; i++) {
         const closePrice = quotes.close[i];
@@ -133,9 +151,9 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
         }
       }
     }
-    
-    return { 
-      price, 
+
+    return {
+      price,
       change: parseFloat(change.toFixed(2)),
       previousClose: prevClose,
       chartData: chartData.length > 0 ? chartData : undefined
@@ -152,48 +170,17 @@ async function fetchCrypto(id: string): Promise<{ price: number; change: number 
       `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`
     );
     if (!response.ok) return null;
-    
+
     const data = await response.json();
     const asset = data[id];
     if (!asset) return null;
-    
-    return { 
-      price: asset.usd, 
-      change: parseFloat((asset.usd_24h_change || 0).toFixed(2)) 
+
+    return {
+      price: asset.usd,
+      change: parseFloat((asset.usd_24h_change || 0).toFixed(2))
     };
   } catch (error) {
     console.error(`Failed to fetch ${id}:`, error);
-    return null;
-  }
-}
-
-let previousFearGreedValue: number | null = null;
-
-async function fetchFearGreed(): Promise<{ price: number; change: number } | null> {
-  try {
-    const response = await fetchWithTimeout(
-      'https://api.alternative.me/fng/?limit=2'
-    );
-    if (!response.ok) return null;
-    
-    const data = await response.json();
-    const current = data.data?.[0];
-    const previous = data.data?.[1];
-    
-    if (!current) return null;
-    
-    const currentValue = parseInt(current.value, 10);
-    const previousValue = previous ? parseInt(previous.value, 10) : previousFearGreedValue;
-    
-    const change = previousValue !== null ? currentValue - previousValue : 0;
-    previousFearGreedValue = currentValue;
-    
-    return { 
-      price: currentValue,
-      change: parseFloat(change.toFixed(2))
-    };
-  } catch (error) {
-    console.error('Failed to fetch Fear & Greed:', error);
     return null;
   }
 }
@@ -208,40 +195,40 @@ async function fetchKoreanFuelPrices(): Promise<Record<string, { price: number; 
       `https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=${apiKey}`,
       8000
     );
-    
+
     if (!response.ok) {
       console.log('Opinet API not accessible, using realistic Korean fuel prices');
       return { gasoline: null, diesel: null };
     }
-    
+
     const data = await response.json();
     const result = data.RESULT?.OIL;
-    
+
     if (!result || !Array.isArray(result)) {
       return { gasoline: null, diesel: null };
     }
-    
+
     const rates: Record<string, { price: number; change: number } | null> = {};
-    
+
     for (const item of result) {
       if (item.PRODCD === 'B027') {
         const price = parseFloat(item.PRICE);
-        const change = previousGasolinePrice 
-          ? ((price - previousGasolinePrice) / previousGasolinePrice) * 100 
+        const change = previousGasolinePrice
+          ? ((price - previousGasolinePrice) / previousGasolinePrice) * 100
           : 0;
         rates.gasoline = { price, change: parseFloat(change.toFixed(2)) };
         previousGasolinePrice = price;
       }
       if (item.PRODCD === 'D047') {
         const price = parseFloat(item.PRICE);
-        const change = previousDieselPrice 
-          ? ((price - previousDieselPrice) / previousDieselPrice) * 100 
+        const change = previousDieselPrice
+          ? ((price - previousDieselPrice) / previousDieselPrice) * 100
           : 0;
         rates.diesel = { price, change: parseFloat(change.toFixed(2)) };
         previousDieselPrice = price;
       }
     }
-    
+
     return rates;
   } catch (error) {
     console.log('Korean fuel API unavailable, using mock data');
@@ -258,62 +245,63 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
       console.log('REB API key not configured');
       return null;
     }
-    
+
     // 부동산통계정보시스템 API - 주택종합 매매가격지수
     const url = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?STATBL_ID=A_2024_00900&DTACYCLE_CD=YY&WRTTIME_IDTFR_ID=2022&Type=json&serviceKey=${apiKey}`;
-    
+
     const response = await fetchWithTimeout(url, 10000);
-    
+
     if (!response.ok) {
       console.log('REB Real Estate API not accessible, status:', response.status);
       return null;
     }
-    
+
     const data = await response.json();
-    
+
     // API 응답 구조: {"SttsApiTblData": [{"head": [...]}, {"row": [...]}]}
     const apiData = data.SttsApiTblData;
     if (!apiData || !Array.isArray(apiData) || apiData.length < 2) {
       console.log('Unexpected REB API response structure');
       return null;
     }
-    
+
     const rowSection = apiData.find((item: any) => item.row);
     const items = rowSection?.row || [];
-    
+
     if (!items || items.length === 0) {
       console.log('No row data in REB API response');
       return null;
     }
-    
+
     // 전국 데이터 찾기 (CLS_FULLNM이 '전국'으로 시작하는 항목)
-    let nationalData = items.find((item: any) => 
-      item.CLS_NM === '전국' || 
+    let nationalData = items.find((item: any) =>
+      item.CLS_NM === '전국' ||
       item.CLS_FULLNM === '전국' ||
       (item.CLS_FULLNM && item.CLS_FULLNM.startsWith('전국'))
     );
-    
+
     // 전국 데이터가 없으면 서울 데이터 찾기
     if (!nationalData) {
-      nationalData = items.find((item: any) => 
+      nationalData = items.find((item: any) =>
         item.CLS_FULLNM && item.CLS_FULLNM.startsWith('서울')
       );
     }
-    
+
     // 서울도 없으면 모든 지역의 평균 계산
     let price: number;
     if (!nationalData) {
-      const validItems = items.filter((item: any) => 
+      const validItems = items.filter((item: any) =>
         item.DTA_VAL && !isNaN(parseFloat(item.DTA_VAL))
       );
-      
+
       if (validItems.length === 0) {
         console.log('No valid data items in REB API response');
         return null;
       }
-      
-      const sum = validItems.reduce((acc: number, item: any) => 
-        acc + parseFloat(item.DTA_VAL), 0
+
+      const sum = validItems.reduce((acc: number, item: any) =>
+        acc + parseFloat(item.DTA_VAL),
+        0
       );
       price = sum / validItems.length;
       console.log(`REB: Using average of ${validItems.length} regions: ${price.toFixed(2)}`);
@@ -321,23 +309,23 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
       price = parseFloat(nationalData.DTA_VAL);
       console.log(`REB: Found data for ${nationalData.CLS_FULLNM || nationalData.CLS_NM}: ${price}`);
     }
-    
+
     const change = previousRealEstatePrice
       ? ((price - previousRealEstatePrice) / previousRealEstatePrice) * 100
       : 0;
-    
+
     previousRealEstatePrice = price;
-    
+
     // 지수를 강남 30평 아파트 시세로 변환 (100 = 25억원 기준)
     const gangnamPrice = (price / 100) * 25;
-    
-    console.log('Gangnam Apartment Price calculated:', { 
-      originalIndex: price.toFixed(2), 
-      gangnamPrice: gangnamPrice.toFixed(2) + '억', 
-      change: change.toFixed(2) + '%' 
+
+    console.log('Gangnam Apartment Price calculated:', {
+      originalIndex: price.toFixed(2),
+      gangnamPrice: gangnamPrice.toFixed(2) + '억',
+      change: change.toFixed(2) + '%'
     });
-    
-    return { 
+
+    return {
       price: gangnamPrice,
       change: parseFloat(change.toFixed(2))
     };
@@ -354,20 +342,20 @@ const FETCH_INTERVAL = 86400000; // 1일(밀리초)
 
 async function fetchBokBaseRate(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.ECOS_API_KEY;
-  
+
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for BOK rate');
     return null;
   }
-  
+
   const now = Date.now();
   if (now - lastFetch < FETCH_INTERVAL) {
     console.log('Using cached BOK base rate data');
     return previousBokRate ? { price: previousBokRate, change: 0 } : null;
   }
-  
+
   lastFetch = now;
-  
+
   try {
     // ECOS API: 한국은행 기준금리 통계표 코드 722Y001, 항목코드 0101000
     // 최근 2개월 데이터 조회 (월별)
@@ -376,42 +364,42 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
     const startYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
     const startMonth = today.getMonth() === 0 ? 12 : today.getMonth();
     const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
-    
+
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/722Y001/M/${startDate}/${endDate}/0101000`;
-    
+
     console.log('Fetching BOK base rate from ECOS API:', url.replace(apiKey, '***'));
     const response = await fetchWithTimeout(url, 10000);
-    
+
     if (!response.ok) {
       console.log('ECOS API not accessible, status:', response.status);
       return null;
     }
-    
+
     const data = await response.json();
-    
+
     // API 응답 구조 확인
     if (!data.StatisticSearch || data.StatisticSearch.RESULT) {
       const result = data.StatisticSearch?.RESULT;
       console.log('ECOS API error:', result?.MESSAGE || 'Unknown error');
       return null;
     }
-    
+
     const searchResult = data.StatisticSearch.row;
-    
+
     if (!searchResult || !Array.isArray(searchResult) || searchResult.length === 0) {
       console.log('No data in ECOS API response');
       return null;
     }
-    
+
     // 가장 최신 데이터
     const latestRow = searchResult[searchResult.length - 1];
     const currentRate = parseFloat(latestRow.DATA_VALUE);
-    
+
     if (isNaN(currentRate)) {
       console.log('Invalid data value:', latestRow.DATA_VALUE);
       return null;
     }
-    
+
     let change = 0;
     if (searchResult.length >= 2) {
       const previousRow = searchResult[searchResult.length - 2];
@@ -422,16 +410,16 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
     } else if (previousBokRate !== null) {
       change = currentRate - previousBokRate;
     }
-    
+
     previousBokRate = currentRate;
-    
-    console.log('BOK Base Rate fetched:', { 
-      rate: currentRate.toFixed(2) + '%', 
+
+    console.log('BOK Base Rate fetched:', {
+      rate: currentRate.toFixed(2) + '%',
       change: change.toFixed(2) + '%p',
       period: latestRow.TIME
     });
-    
-    return { 
+
+    return {
       price: currentRate,
       change: parseFloat(change.toFixed(2))
     };
@@ -444,7 +432,7 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
 export async function fetchAllMarketData(): Promise<RawMarketData> {
   const [
     exchangeRates,
-    feargreed,
+    dowjones,
     kospi,
     kosdaq,
     nasdaq,
@@ -460,7 +448,7 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     bokrate,
   ] = await Promise.all([
     fetchExchangeRates(),
-    fetchFearGreed(),
+    fetchYahooFinance('^DJI'),
     fetchYahooFinance('^KS11'),
     fetchYahooFinance('^KQ11'),
     fetchYahooFinance('^IXIC'),
@@ -476,19 +464,22 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchBokBaseRate(),
   ]);
 
-  return { 
-    ...exchangeRates,
-    feargreed,
-    kospi, 
+  return {
+    usdkrw: exchangeRates?.usdkrw ?? null,
+    jpykrw: exchangeRates?.jpykrw ?? null,
+    cnykrw: exchangeRates?.cnykrw ?? null,
+    eurkrw: exchangeRates?.eurkrw ?? null,
+    dowjones,
+    kospi,
     kosdaq,
     nasdaq,
     sp500,
-    gold, 
+    gold,
     silver,
-    gasoline: koreanFuel.gasoline,
-    diesel: koreanFuel.diesel,
+    gasoline: koreanFuel?.gasoline ?? null,
+    diesel: koreanFuel?.diesel ?? null,
     kbrealestate,
-    bitcoin, 
+    bitcoin,
     ethereum,
     bonds: bonds10y,
     bonds2y,
@@ -496,9 +487,9 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
   };
 }
 
-function getCurrencyStatus(price: number, baseLow: number, baseHigh: number): WeatherStatus {
-  if (price > baseHigh) return 'rainy';
-  if (price < baseLow) return 'sunny';
+function getCurrencyStatus(price: number, lowThreshold: number, highThreshold: number): WeatherStatus {
+  if (price > highThreshold) return 'rainy';
+  if (price < lowThreshold) return 'sunny';
   return 'cloudy';
 }
 
@@ -528,14 +519,6 @@ function getBondsStatus(change: number): WeatherStatus {
   return 'cloudy';
 }
 
-function getFearGreedStatus(value: number, change: number): WeatherStatus {
-  if (Math.abs(change) >= 15) return 'thunder';
-  if (value >= 70) return 'sunny';
-  if (value >= 50) return 'cloudy';
-  if (value >= 30) return 'rainy';
-  return 'thunder';
-}
-
 function getRealEstateStatus(change: number): WeatherStatus {
   if (Math.abs(change) > 2) return 'thunder';
   if (change > 0.5) return 'sunny';
@@ -543,9 +526,9 @@ function getRealEstateStatus(change: number): WeatherStatus {
   return 'cloudy';
 }
 
-function getFuelStatus(price: number, baseLow: number, baseHigh: number): WeatherStatus {
-  if (price > baseHigh) return 'rainy';
-  if (price < baseLow) return 'sunny';
+function getFuelStatus(price: number, lowThreshold: number, highThreshold: number): WeatherStatus {
+  if (price > highThreshold) return 'rainy';
+  if (price < lowThreshold) return 'sunny';
   return 'cloudy';
 }
 
@@ -573,19 +556,6 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '환율이 요동치고 있어요!',
     },
     advice: '환율이 높을 땐 수출 기업 주식이 좋을 수 있어요! 반대로 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
-  },
-  feargreed: {
-    name: '공포 탐욕 지수',
-    category: 'index',
-    getStatus: (price, change) => getFearGreedStatus(price, change),
-    formatPrice: (p) => `${p.toFixed(0)}점`,
-    messages: {
-      sunny: '탐욕 구간! 시장이 낙관적이에요.',
-      rainy: '공포 구간! 시장이 불안해해요.',
-      cloudy: '중립 구간. 시장이 관망 중이에요.',
-      thunder: '극단적 공포! 대폭락 주의보!',
-    },
-    advice: '공포 지수가 극단적으로 낮을 때가 오히려 매수 기회일 수 있어요. "남들이 공포에 떨 때 탐욕을 부려라"는 워렌 버핏의 말처럼요!',
   },
   jpykrw: {
     name: '일본 엔화',
@@ -838,6 +808,19 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     },
     advice: '한국은행 기준금리는 대출금리와 예금금리에 영향을 줘요. 금리가 오르면 대출 이자가 늘어나고, 예금 이자도 올라요.',
   },
+  dowjones: {
+    name: '다우존스',
+    category: 'index',
+    getStatus: (_, change) => getIndexStatus(change),
+    formatPrice: (p) => `${p.toLocaleString('en-US', { maximumFractionDigits: 2 })} pt`,
+    messages: {
+      sunny: '다우존스가 상승세입니다!',
+      rainy: '다우존스가 하락세입니다.',
+      cloudy: '다우존스가 안정적인 흐름을 보입니다.',
+      thunder: '다우존스가 크게 움직이고 있습니다!',
+    },
+    advice: '다우존스 지수는 미국 대표 30개 우량 기업의 주가 평균으로, 미국 경제의 전반적인 건전성을 나타내는 지표입니다.',
+  },
 };
 
 function generateMockData(id: AssetType): { price: number; change: number } {
@@ -846,7 +829,6 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     jpykrw: { base: 9.5, volatility: 0.5 },
     cnykrw: { base: 200, volatility: 10 },
     eurkrw: { base: 1500, volatility: 50 },
-    feargreed: { base: 50, volatility: 20 },
     kospi: { base: 2500, volatility: 100 },
     kosdaq: { base: 850, volatility: 50 },
     nasdaq: { base: 19500, volatility: 300 },
@@ -861,13 +843,14 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     bonds: { base: 4.2, volatility: 0.3 },
     bonds2y: { base: 4.5, volatility: 0.2 },
     bokrate: { base: 3.0, volatility: 0 },  // 한국 기준금리 현재 3.0%
+    dowjones: { base: 38000, volatility: 200 }, // 다우존스 지수 평균값 및 변동성 (임의)
   };
-  
+
   const config = configs[id];
   const changePercent = (Math.random() - 0.5) * 6;
   const priceChange = config.base * (changePercent / 100);
   const price = config.base + priceChange + (Math.random() - 0.5) * config.volatility;
-  
+
   return {
     price: Math.max(0, price),
     change: parseFloat(changePercent.toFixed(2)),
@@ -876,10 +859,8 @@ function generateMockData(id: AssetType): { price: number; change: number } {
 
 function formatChangePoints(id: AssetType, price: number, change: number, previousClose?: number): { points: number; display: string } {
   let points = 0;
-  
-  if (id === 'feargreed') {
-    points = change;
-  } else if (previousClose && previousClose > 0) {
+
+  if (previousClose && previousClose > 0) {
     points = price - previousClose;
   } else if (change !== 0 && change > -100) {
     const previousPrice = price / (1 + change / 100);
@@ -887,18 +868,16 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else if (change !== 0) {
     points = change;
   }
-  
-  const isIndex = ['kospi', 'kosdaq', 'nasdaq', 'sp500'].includes(id);
+
+  const isIndex = ['kospi', 'kosdaq', 'nasdaq', 'sp500', 'dowjones'].includes(id);
   const isCurrency = ['usdkrw', 'jpykrw', 'cnykrw', 'eurkrw'].includes(id);
   const isBonds = ['bonds', 'bonds2y', 'bokrate'].includes(id);
   const isCrypto = ['bitcoin', 'ethereum'].includes(id);
-  
+
   let display = '';
   const sign = points >= 0 ? '+' : '';
-  
-  if (id === 'feargreed') {
-    display = `${sign}${Math.round(points)}점`;
-  } else if (isIndex) {
+
+  if (isIndex) {
     display = `${sign}${points.toFixed(2)}pt`;
   } else if (isCurrency) {
     if (id === 'jpykrw') {
@@ -921,36 +900,64 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else {
     display = `${sign}${points.toFixed(2)}`;
   }
-  
+
   return { points, display };
 }
 
 export function convertToAssetData(rawData: RawMarketData): AssetData[] {
   const assets: AssetData[] = [];
   const assetIds = Object.keys(assetConfigs) as AssetType[];
-  
+
   for (const id of assetIds) {
-    let data = rawData[id];
     const config = assetConfigs[id];
-    
+    const data = rawData[id];
+
     if (!data) {
-      console.log(`Using mock data for ${id}`);
-      data = generateMockData(id);
+      console.log(`No data available for ${id}, using mock data.`);
+      const mockData = generateMockData(id);
+      const { points, display } = formatChangePoints(id, mockData.price, mockData.change);
+      const status = config.getStatus(mockData.price, mockData.change);
+      const assetData: AssetData = {
+        id,
+        name: config.name,
+        category: config.category,
+        price: mockData.price,
+        priceDisplay: config.formatPrice(mockData.price),
+        change: mockData.change,
+        changePoints: points,
+        changePointsDisplay: display,
+        status,
+        message: config.messages[status],
+        advice: config.advice,
+        chartData: undefined,
+      };
+
+      if (config.formatBuyPrice) {
+        assetData.buyPrice = mockData.price * 0.97;
+        assetData.buyPriceDisplay = config.formatBuyPrice(mockData.price);
+      }
+      if (config.formatSellPrice) {
+        assetData.sellPrice = mockData.price * 1.03;
+        assetData.sellPriceDisplay = config.formatSellPrice(mockData.price);
+      }
+
+      assets.push(assetData);
+      continue;
     }
-    
+
     let priceForDisplay = data.price;
     let chartData = data.chartData;
-    
+
     if (id === 'jpykrw') {
       priceForDisplay = data.price * 100;
       if (chartData) {
         chartData = chartData.map(d => ({ ...d, price: d.price * 100 }));
       }
     }
-    
+
     const { points, display } = formatChangePoints(id, priceForDisplay, data.change, data.previousClose);
     const status = config.getStatus(priceForDisplay, data.change);
-    
+
     const assetData: AssetData = {
       id,
       name: config.name,
@@ -965,7 +972,7 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       advice: config.advice,
       chartData,
     };
-    
+
     if (config.formatBuyPrice) {
       assetData.buyPrice = data.price * 0.97;
       assetData.buyPriceDisplay = config.formatBuyPrice(data.price);
@@ -974,7 +981,7 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       assetData.sellPrice = data.price * 1.03;
       assetData.sellPriceDisplay = config.formatSellPrice(data.price);
     }
-    
+
     assets.push(assetData);
   }
 
