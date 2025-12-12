@@ -20,6 +20,12 @@ interface RawMarketData {
   bonds: { price: number; change: number; previousClose?: number } | null;
   bonds2y: { price: number; change: number; previousClose?: number } | null;
   bokrate: { price: number; change: number } | null;
+  krbond3y: { price: number; change: number } | null;
+  krbond10y: { price: number; change: number } | null;
+  yieldspread: { price: number; change: number } | null;
+  cpi: { price: number; change: number } | null;
+  ppi: { price: number; change: number } | null;
+  ccsi: { price: number; change: number } | null;
 }
 
 let cachedUsdKrw: number = 1400;
@@ -431,6 +437,215 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
   }
 }
 
+// 국고채 금리 조회 (3년물/10년물)
+async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ price: number; change: number } | null> {
+  const apiKey = process.env.ECOS_API_KEY;
+  
+  if (!apiKey) {
+    console.log(`ECOS API key not configured, using mock data for ${name}`);
+    return null;
+  }
+  
+  try {
+    const today = new Date();
+    const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+    const startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const startDateStr = `${startDate.getFullYear()}${String(startDate.getMonth() + 1).padStart(2, '0')}${String(startDate.getDate()).padStart(2, '0')}`;
+    
+    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/30/817Y002/D/${startDateStr}/${endDate}/${itemCode}`;
+    
+    console.log(`Fetching ${name} from ECOS API...`);
+    const response = await fetchWithTimeout(url, 10000);
+    
+    if (!response.ok) {
+      console.log(`ECOS API for ${name} not accessible, status:`, response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (!data.StatisticSearch || data.StatisticSearch.RESULT) {
+      console.log(`ECOS API error for ${name}:`, data.StatisticSearch?.RESULT?.MESSAGE || 'Unknown error');
+      return null;
+    }
+    
+    const rows = data.StatisticSearch.row;
+    if (!rows || rows.length === 0) {
+      console.log(`No data for ${name}`);
+      return null;
+    }
+    
+    const latestRow = rows[rows.length - 1];
+    const currentRate = parseFloat(latestRow.DATA_VALUE);
+    
+    let change = 0;
+    if (rows.length >= 2) {
+      const previousRow = rows[rows.length - 2];
+      const previousRate = parseFloat(previousRow.DATA_VALUE);
+      if (!isNaN(previousRate)) {
+        change = currentRate - previousRate;
+      }
+    }
+    
+    console.log(`${name} fetched:`, { rate: currentRate.toFixed(2) + '%', change: change.toFixed(3) + '%p' });
+    
+    return { price: currentRate, change: parseFloat(change.toFixed(3)) };
+  } catch (error) {
+    console.log(`ECOS API error for ${name}:`, error);
+    return null;
+  }
+}
+
+// 소비자물가지수(CPI) 조회
+async function fetchCPI(): Promise<{ price: number; change: number } | null> {
+  const apiKey = process.env.ECOS_API_KEY;
+  
+  if (!apiKey) {
+    console.log('ECOS API key not configured, using mock data for CPI');
+    return null;
+  }
+  
+  try {
+    const today = new Date();
+    const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
+    const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
+    const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
+    
+    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y009/M/${startDate}/${endDate}/0`;
+    
+    console.log('Fetching CPI from ECOS API...');
+    const response = await fetchWithTimeout(url, 10000);
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    if (!data.StatisticSearch || data.StatisticSearch.RESULT) return null;
+    
+    const rows = data.StatisticSearch.row;
+    if (!rows || rows.length === 0) return null;
+    
+    const latestRow = rows[rows.length - 1];
+    const currentValue = parseFloat(latestRow.DATA_VALUE);
+    
+    let change = 0;
+    if (rows.length >= 2) {
+      const previousRow = rows[rows.length - 2];
+      const previousValue = parseFloat(previousRow.DATA_VALUE);
+      if (!isNaN(previousValue)) {
+        change = ((currentValue - previousValue) / previousValue) * 100;
+      }
+    }
+    
+    console.log('CPI fetched:', { value: currentValue.toFixed(2), change: change.toFixed(2) + '%' });
+    
+    return { price: currentValue, change: parseFloat(change.toFixed(2)) };
+  } catch (error) {
+    console.log('ECOS API error for CPI:', error);
+    return null;
+  }
+}
+
+// 생산자물가지수(PPI) 조회
+async function fetchPPI(): Promise<{ price: number; change: number } | null> {
+  const apiKey = process.env.ECOS_API_KEY;
+  
+  if (!apiKey) {
+    console.log('ECOS API key not configured, using mock data for PPI');
+    return null;
+  }
+  
+  try {
+    const today = new Date();
+    const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
+    const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
+    const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
+    
+    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/901Y010/M/${startDate}/${endDate}/0`;
+    
+    console.log('Fetching PPI from ECOS API...');
+    const response = await fetchWithTimeout(url, 10000);
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    if (!data.StatisticSearch || data.StatisticSearch.RESULT) return null;
+    
+    const rows = data.StatisticSearch.row;
+    if (!rows || rows.length === 0) return null;
+    
+    const latestRow = rows[rows.length - 1];
+    const currentValue = parseFloat(latestRow.DATA_VALUE);
+    
+    let change = 0;
+    if (rows.length >= 2) {
+      const previousRow = rows[rows.length - 2];
+      const previousValue = parseFloat(previousRow.DATA_VALUE);
+      if (!isNaN(previousValue)) {
+        change = ((currentValue - previousValue) / previousValue) * 100;
+      }
+    }
+    
+    console.log('PPI fetched:', { value: currentValue.toFixed(2), change: change.toFixed(2) + '%' });
+    
+    return { price: currentValue, change: parseFloat(change.toFixed(2)) };
+  } catch (error) {
+    console.log('ECOS API error for PPI:', error);
+    return null;
+  }
+}
+
+// 소비자심리지수(CCSI) 조회
+async function fetchCCSI(): Promise<{ price: number; change: number } | null> {
+  const apiKey = process.env.ECOS_API_KEY;
+  
+  if (!apiKey) {
+    console.log('ECOS API key not configured, using mock data for CCSI');
+    return null;
+  }
+  
+  try {
+    const today = new Date();
+    const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
+    const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
+    const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
+    
+    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/511Y002/M/${startDate}/${endDate}/FME/99988`;
+    
+    console.log('Fetching CCSI from ECOS API...');
+    const response = await fetchWithTimeout(url, 10000);
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    if (!data.StatisticSearch || data.StatisticSearch.RESULT) return null;
+    
+    const rows = data.StatisticSearch.row;
+    if (!rows || rows.length === 0) return null;
+    
+    const latestRow = rows[rows.length - 1];
+    const currentValue = parseFloat(latestRow.DATA_VALUE);
+    
+    let change = 0;
+    if (rows.length >= 2) {
+      const previousRow = rows[rows.length - 2];
+      const previousValue = parseFloat(previousRow.DATA_VALUE);
+      if (!isNaN(previousValue)) {
+        change = currentValue - previousValue;
+      }
+    }
+    
+    console.log('CCSI fetched:', { value: currentValue.toFixed(1), change: change.toFixed(1) + 'pt' });
+    
+    return { price: currentValue, change: parseFloat(change.toFixed(1)) };
+  } catch (error) {
+    console.log('ECOS API error for CCSI:', error);
+    return null;
+  }
+}
+
 export async function fetchAllMarketData(): Promise<RawMarketData> {
   const [
     exchangeRates,
@@ -448,6 +663,11 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     bonds10y,
     bonds2y,
     bokrate,
+    krbond3y,
+    krbond10y,
+    cpi,
+    ppi,
+    ccsi,
   ] = await Promise.all([
     fetchExchangeRates(),
     fetchYahooFinance('^DJI'),
@@ -464,7 +684,22 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchYahooFinance('^TNX'),
     fetchYahooFinance('^IRX'),
     fetchBokBaseRate(),
+    fetchKoreanBondRate('010200000', '국고채 3년물'),
+    fetchKoreanBondRate('010210000', '국고채 10년물'),
+    fetchCPI(),
+    fetchPPI(),
+    fetchCCSI(),
   ]);
+
+  // 장단기 금리차 계산 (10년물 - 3년물)
+  let yieldspread: { price: number; change: number } | null = null;
+  if (krbond10y && krbond3y) {
+    const spread = krbond10y.price - krbond3y.price;
+    const prevSpread = (krbond10y.price - krbond10y.change) - (krbond3y.price - krbond3y.change);
+    const spreadChange = spread - prevSpread;
+    yieldspread = { price: spread, change: parseFloat(spreadChange.toFixed(3)) };
+    console.log('Yield spread calculated:', { spread: spread.toFixed(3) + '%p', change: spreadChange.toFixed(3) + '%p' });
+  }
 
   return {
     usdkrw: exchangeRates?.usdkrw ?? null,
@@ -486,6 +721,12 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     bonds: bonds10y,
     bonds2y,
     bokrate,
+    krbond3y,
+    krbond10y,
+    yieldspread,
+    cpi,
+    ppi,
+    ccsi,
   };
 }
 
@@ -547,7 +788,7 @@ interface AssetConfig {
 
 const assetConfigs: Record<AssetType, AssetConfig> = {
   usdkrw: {
-    name: '미국 달러',
+    name: '미국 달러 (전일 종가)',
     category: 'currency',
     getStatus: (price) => getCurrencyStatus(price, 1350, 1400),
     formatPrice: (p) => `${p.toLocaleString('ko-KR', { maximumFractionDigits: 0 })} KRW`,
@@ -557,7 +798,7 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       cloudy: '환율이 잠잠해요. 큰 변화가 없네요.',
       thunder: '환율이 요동치고 있어요!',
     },
-    advice: '환율이 높을 땐 수출 기업 주식이 좋을 수 있어요! 반대로 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
+    advice: '전일 마감 환율(종가) 기준이에요. 실시간 환율과 다를 수 있어요. 환율이 높을 땐 수출 기업 주식이 좋을 수 있어요! 반대로 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
   },
   jpykrw: {
     name: '일본 엔화',
@@ -810,6 +1051,103 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     },
     advice: '한국은행 기준금리는 대출금리와 예금금리에 영향을 줘요. 금리가 오르면 대출 이자가 늘어나고, 예금 이자도 올라요.',
   },
+  krbond3y: {
+    name: '국고채 3년',
+    category: 'bonds',
+    getStatus: (_, change) => getBondsStatus(change),
+    formatPrice: (p) => `${p.toFixed(2)}%`,
+    messages: {
+      sunny: '3년물 금리가 올랐어요!',
+      rainy: '3년물 금리가 내렸어요.',
+      cloudy: '3년물 금리가 안정적이에요.',
+      thunder: '3년물 금리가 급변하고 있어요!',
+    },
+    advice: '국고채 3년물은 기업들이 돈을 빌릴 때(회사채) 기준이 되는 금리예요. 단기~중기 경제 상황을 반영해요.',
+  },
+  krbond10y: {
+    name: '국고채 10년',
+    category: 'bonds',
+    getStatus: (_, change) => getBondsStatus(change),
+    formatPrice: (p) => `${p.toFixed(2)}%`,
+    messages: {
+      sunny: '10년물 금리가 올랐어요!',
+      rainy: '10년물 금리가 내렸어요.',
+      cloudy: '10년물 금리가 안정적이에요.',
+      thunder: '10년물 금리가 급변하고 있어요!',
+    },
+    advice: '국고채 10년물은 장기적인 경제 성장 전망을 보여줘요. 주택담보대출 금리와도 연관이 있어요.',
+  },
+  yieldspread: {
+    name: '장단기 금리차',
+    category: 'bonds',
+    getStatus: (price, change) => {
+      if (price < 0) return 'thunder';  // 역전 발생
+      if (price < 0.2) return 'rainy';  // 역전 임박
+      if (change > 0.05) return 'sunny';
+      if (change < -0.05) return 'rainy';
+      return 'cloudy';
+    },
+    formatPrice: (p) => `${p >= 0 ? '+' : ''}${p.toFixed(2)}%p`,
+    messages: {
+      sunny: '금리차가 확대되고 있어요.',
+      rainy: '금리차가 축소되고 있어요. 주의!',
+      cloudy: '금리차가 안정적이에요.',
+      thunder: '금리 역전! 경기 침체 신호!',
+    },
+    advice: '10년물 금리 - 3년물 금리 차이예요. 이 차이가 마이너스가 되면(역전되면) 경기 침체가 올 신호라고 해석해요. 아주 고급진 지표랍니다!',
+  },
+  cpi: {
+    name: '소비자물가',
+    category: 'index',
+    getStatus: (price, change) => {
+      if (change > 0.5) return 'rainy';   // 물가 상승 = 나쁨
+      if (change < -0.2) return 'sunny';  // 물가 하락 = 좋음
+      return 'cloudy';
+    },
+    formatPrice: (p) => `${p.toFixed(1)}`,
+    messages: {
+      sunny: '물가가 안정되고 있어요!',
+      rainy: '물가가 오르고 있어요. 장바구니가 무거워요.',
+      cloudy: '물가가 안정적이에요.',
+      thunder: '물가가 급등하고 있어요!',
+    },
+    advice: '"내 월급 빼고 다 오른다"를 숫자로 확인하는 지표예요. 마트에서 사는 물건 가격의 변동을 나타내는 인플레이션 지표입니다.',
+  },
+  ppi: {
+    name: '생산자물가',
+    category: 'index',
+    getStatus: (price, change) => {
+      if (change > 0.5) return 'rainy';
+      if (change < -0.2) return 'sunny';
+      return 'cloudy';
+    },
+    formatPrice: (p) => `${p.toFixed(1)}`,
+    messages: {
+      sunny: '생산 비용이 안정되고 있어요!',
+      rainy: '생산 비용이 오르고 있어요.',
+      cloudy: '생산 비용이 안정적이에요.',
+      thunder: '생산 비용이 급등하고 있어요!',
+    },
+    advice: '공장에서 물건을 만들 때 드는 비용이에요. PPI가 오르면 나중에 소비자물가(CPI)도 따라 오를 수 있어요.',
+  },
+  ccsi: {
+    name: '소비자심리',
+    category: 'index',
+    getStatus: (price, change) => {
+      if (price >= 110) return 'sunny';   // 강한 낙관
+      if (price >= 100) return 'cloudy';  // 낙관
+      if (price >= 90) return 'rainy';    // 비관
+      return 'thunder';                    // 강한 비관
+    },
+    formatPrice: (p) => `${p.toFixed(0)}점`,
+    messages: {
+      sunny: '소비자들이 낙관적이에요! 지갑을 열 준비!',
+      rainy: '소비자들이 조심스러워요. 지갑을 닫는 중.',
+      cloudy: '소비자 심리가 보통이에요.',
+      thunder: '소비자 심리가 얼어붙었어요!',
+    },
+    advice: '사람들의 마음(심리)을 숫자로 나타낸 거예요. 100 이상이면 "경기가 좋아질 것 같아 지갑을 열자!", 100 미만이면 "먹고살기 힘들어 지갑 닫자"예요. 주식이나 부동산 시장의 선행 지표로 쓰여요.',
+  },
   dowjones: {
     name: '다우존스',
     category: 'index',
@@ -844,8 +1182,14 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     ethereum: { base: 3500, volatility: 300 },
     bonds: { base: 4.2, volatility: 0.3 },
     bonds2y: { base: 4.5, volatility: 0.2 },
-    bokrate: { base: 3.0, volatility: 0 },  // 한국 기준금리 현재 3.0%
-    dowjones: { base: 38000, volatility: 200 }, // 다우존스 지수 평균값 및 변동성 (임의)
+    bokrate: { base: 3.0, volatility: 0 },
+    krbond3y: { base: 2.8, volatility: 0.1 },
+    krbond10y: { base: 3.1, volatility: 0.1 },
+    yieldspread: { base: 0.3, volatility: 0.05 },
+    cpi: { base: 113, volatility: 0.5 },
+    ppi: { base: 118, volatility: 0.5 },
+    ccsi: { base: 100, volatility: 5 },
+    dowjones: { base: 38000, volatility: 200 },
   };
 
   const config = configs[id];
@@ -873,7 +1217,7 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
 
   const isIndex = ['kospi', 'kosdaq', 'nasdaq', 'sp500', 'dowjones'].includes(id);
   const isCurrency = ['usdkrw', 'jpykrw', 'cnykrw', 'eurkrw'].includes(id);
-  const isBonds = ['bonds', 'bonds2y', 'bokrate'].includes(id);
+  const isBonds = ['bonds', 'bonds2y', 'bokrate', 'krbond3y', 'krbond10y', 'yieldspread'].includes(id);
   const isCrypto = ['bitcoin', 'ethereum'].includes(id);
 
   let display = '';
@@ -948,16 +1292,16 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
     }
 
     let priceForDisplay = data.price;
-    let chartData = data.chartData;
+    let chartData = (data as any).chartData;
 
     if (id === 'jpykrw') {
       priceForDisplay = data.price * 100;
       if (chartData) {
-        chartData = chartData.map(d => ({ ...d, price: d.price * 100 }));
+        chartData = chartData.map((d: { time: string; price: number }) => ({ ...d, price: d.price * 100 }));
       }
     }
 
-    const { points, display } = formatChangePoints(id, priceForDisplay, data.change, data.previousClose);
+    const { points, display } = formatChangePoints(id, priceForDisplay, data.change, (data as any).previousClose);
     const status = config.getStatus(priceForDisplay, data.change);
 
     const assetData: AssetData = {

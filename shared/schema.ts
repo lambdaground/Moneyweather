@@ -24,7 +24,8 @@ export type AssetType =
   | 'dowjones' | 'kospi' | 'kosdaq' | 'nasdaq' | 'sp500'
   | 'gold' | 'silver' | 'gasoline' | 'diesel' | 'kbrealestate'
   | 'bitcoin' | 'ethereum'
-  | 'bonds' | 'bonds2y' | 'bokrate';
+  | 'bonds' | 'bonds2y' | 'bokrate' | 'krbond3y' | 'krbond10y' | 'yieldspread'
+  | 'cpi' | 'ppi' | 'ccsi';
 
 export type AssetCategory = 'currency' | 'index' | 'commodity' | 'crypto' | 'bonds';
 

@@ -4,9 +4,9 @@
 A mobile-first financial dashboard that translates complex economic data into weather metaphors for users with low financial literacy. All UI is in Korean with friendly, beginner-focused messaging.
 
 ## Current State
-**Status**: MVP Complete with Real Market Data
-- 18 financial assets displayed as weather cards with live data
-- 5 category filters: 환율, 지수, 원자재, 코인, 금리
+**Status**: MVP Complete with Real Market Data + ECOS Economic Indicators
+- 25 financial assets displayed as weather cards with live data
+- 6 category filters: 환율, 지수, 원자재, 코인, 금리
 - 4 weather status filters: 맑음, 흐림, 비, 번개
 - Live timestamp showing data freshness
 - Korean language UI throughout
@@ -66,6 +66,11 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Ethereum | CoinGecko | simple/price (free, no key) |
 | 10Y Bonds | Yahoo Finance | ^TNX (US Treasury Yield) |
 | 2Y Bonds | Yahoo Finance | ^IRX (US 2Y Treasury) |
+| 국고채 3년 | ECOS 817Y002 | 010200000 (일별 시장금리) |
+| 국고채 10년 | ECOS 817Y002 | 010210000 (일별 시장금리) |
+| 소비자물가 | ECOS 901Y009 | CPI (월별) |
+| 생산자물가 | ECOS 901Y010 | PPI (월별) |
+| 소비자심리 | ECOS 511Y002 | CCSI (월별, FME/99988) |
 
 ### Data Flow
 1. Server fetches real market data from multiple free APIs
@@ -110,12 +115,22 @@ A mobile-first financial dashboard that translates complex economic data into we
 | Bitcoin | Change > 1% | Change < -1% | \|Change\| > 3% |
 | Ethereum | Change > 1% | Change < -1% | \|Change\| > 3% |
 
-### Bonds (금리) - 3 assets
+### Bonds (금리) - 6 assets
 | Asset | Sunny | Rainy | Cloudy/Thunder |
 |-------|-------|-------|----------------|
 | 10Y Treasury | Change > 0.1% | Change < -0.1% | between |
 | 2Y Treasury | Change > 0.1% | Change < -0.1% | between |
 | 한국 기준금리 | 인상 | 인하 | 동결 / 0.25%p 이상 변동시 번개 |
+| 국고채 3년 | Change > 0.1% | Change < -0.1% | between |
+| 국고채 10년 | Change > 0.1% | Change < -0.1% | between |
+| 장단기 금리차 | 확대 > 0.05%p | 축소 or < 0.2%p | 역전(마이너스)시 번개 |
+
+### Economic Indicators (경제지표) - 3 assets
+| Asset | API Source | Notes |
+|-------|-----------|-------|
+| 소비자물가(CPI) | ECOS 901Y009 | 물가 상승 = 비, 하락 = 맑음 |
+| 생산자물가(PPI) | ECOS 901Y010 | 물가 상승 = 비, 하락 = 맑음 |
+| 소비자심리(CCSI) | ECOS 511Y002 | 100 이상 낙관, 90 미만 비관, 강한 비관시 번개 |
 
 ## File Structure
 ```
