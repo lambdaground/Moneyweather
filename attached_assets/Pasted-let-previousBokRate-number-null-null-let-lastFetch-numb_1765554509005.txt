@@ -1,0 +1,68 @@
+let previousBokRate: number | null = null;
+let lastFetch: number = 0;
+const FETCH_INTERVAL = 86400000; // 1일(밀리초)
+
+async function fetchBokBaseRate(): Promise<{ price: number; change: number } | null> {
+  const apiKey = process.env.ECOS_API_KEY;
+
+  if (!apiKey) {
+    console.log('ECOS API key not configured, using mock data for BOK rate');
+    return null;
+  }
+
+  const now = Date.now();
+  if (now - lastFetch < FETCH_INTERVAL) {
+    console.log('Using cached BOK base rate data');
+    return previousBokRate ? { price: previousBokRate, change: 0 } : null;
+  }
+
+  lastFetch = now;
+
+  try {
+    const today = new Date();
+    const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
+    const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
+    const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
+
+    const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/722Y001/M/${startDate}/${endDate}/0101000`;
+
+    console.log('Fetching BOK base rate from ECOS API...');
+    const response = await fetchWithTimeout(url, 10000);
+
+    if (!response.ok) {
+      console.log('ECOS API not accessible, status:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const searchResult = data.StatisticSearch.row;
+
+    if (!searchResult || !searchResult.length) {
+      console.log('No data in ECOS API response');
+      return null;
+    }
+
+    // 가장 최신 데이터
+    const latestRow = searchResult[searchResult.length - 1];
+    const currentRate = parseFloat(latestRow.DATA_VALUE);
+
+    let change = 0;
+    if (searchResult.length >= 2) {
+      const previousRow = searchResult[searchResult.length - 2];
+      const previousRate = parseFloat(previousRow.DATA_VALUE);
+      change = currentRate - previousRate;  // 변화 계산
+    } else if (previousBokRate !== null) {
+      change = currentRate - previousBokRate;
+    }
+
+    previousBokRate = currentRate;
+
+    console.log('BOK Base Rate fetched:', { rate: currentRate.toFixed(2) + '%', change: change.toFixed(2) + '%p' });
+
+    return { price: currentRate, change: parseFloat(change.toFixed(2)) };
+  } catch (error) {
+    console.log('ECOS API error:', error);
+    return null;
+  }
+}
