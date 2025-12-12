@@ -60,13 +60,12 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
     const rates: Record<string, { price: number; change: number; previousClose?: number } | null> = {};
 
     const usdkrwPrice = krwPerUsd;
-    const prevUsdkrw = previousRates.usdkrw || usdkrwPrice;
     rates.usdkrw = {
       price: usdkrwPrice,
       change: previousRates.usdkrw
         ? parseFloat((((usdkrwPrice - previousRates.usdkrw) / previousRates.usdkrw) * 100).toFixed(2))
         : 0,
-      previousClose: prevUsdkrw
+      previousClose: previousRates.usdkrw || usdkrwPrice
     };
     previousRates.usdkrw = usdkrwPrice;
 
@@ -76,7 +75,8 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
         price: jpykrwPrice,
         change: previousRates.jpykrw
           ? parseFloat((((jpykrwPrice - previousRates.jpykrw) / previousRates.jpykrw) * 100).toFixed(2))
-          : 0
+          : 0,
+        previousClose: previousRates.jpykrw || jpykrwPrice
       };
       previousRates.jpykrw = jpykrwPrice;
     }
@@ -87,7 +87,8 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
         price: cnykrwPrice,
         change: previousRates.cnykrw
           ? parseFloat((((cnykrwPrice - previousRates.cnykrw) / previousRates.cnykrw) * 100).toFixed(2))
-          : 0
+          : 0,
+        previousClose: previousRates.cnykrw || cnykrwPrice
       };
       previousRates.cnykrw = cnykrwPrice;
     }
@@ -98,7 +99,8 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
         price: eurkrwPrice,
         change: previousRates.eurkrw
           ? parseFloat((((eurkrwPrice - previousRates.eurkrw) / previousRates.eurkrw) * 100).toFixed(2))
-          : 0
+          : 0,
+        previousClose: previousRates.eurkrw || eurkrwPrice
       };
       previousRates.eurkrw = eurkrwPrice;
     }
