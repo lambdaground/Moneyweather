@@ -349,6 +349,8 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
 
 // 한국은행 ECOS API - 기준금리 데이터
 let previousBokRate: number | null = null;
+let lastFetch: number = 0;
+const FETCH_INTERVAL = 86400000; // 1일(밀리초)
 
 async function fetchBokBaseRate(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.ECOS_API_KEY;
@@ -357,6 +359,14 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
     console.log('ECOS API key not configured, using mock data for BOK rate');
     return null;
   }
+  
+  const now = Date.now();
+  if (now - lastFetch < FETCH_INTERVAL) {
+    console.log('Using cached BOK base rate data');
+    return previousBokRate ? { price: previousBokRate, change: 0 } : null;
+  }
+  
+  lastFetch = now;
   
   try {
     // ECOS API: 한국은행 기준금리 통계표 코드 722Y001
@@ -378,35 +388,29 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
     }
     
     const data = await response.json();
+    const searchResult = data.StatisticSearch.row;
     
-    // API 응답 구조: {"StatisticSearch": {"list_total_count": N, "row": [...]}}
-    const searchResult = data.StatisticSearch;
-    if (!searchResult || !searchResult.row || searchResult.row.length === 0) {
+    if (!searchResult || !searchResult.length) {
       console.log('No data in ECOS API response');
       return null;
     }
     
-    // 가장 최신 데이터 (row 배열의 마지막 항목)
-    const latestRow = searchResult.row[searchResult.row.length - 1];
+    // 가장 최신 데이터
+    const latestRow = searchResult[searchResult.length - 1];
     const currentRate = parseFloat(latestRow.DATA_VALUE);
     
-    // 이전 데이터와 비교 (있는 경우)
     let change = 0;
-    if (searchResult.row.length >= 2) {
-      const previousRow = searchResult.row[searchResult.row.length - 2];
+    if (searchResult.length >= 2) {
+      const previousRow = searchResult[searchResult.length - 2];
       const previousRate = parseFloat(previousRow.DATA_VALUE);
-      change = currentRate - previousRate;  // %p 단위 변화
+      change = currentRate - previousRate;  // 변화 계산
     } else if (previousBokRate !== null) {
       change = currentRate - previousBokRate;
     }
     
     previousBokRate = currentRate;
     
-    console.log('BOK Base Rate fetched:', { 
-      rate: currentRate.toFixed(2) + '%',
-      change: change.toFixed(2) + '%p',
-      period: latestRow.TIME
-    });
+    console.log('BOK Base Rate fetched:', { rate: currentRate.toFixed(2) + '%', change: change.toFixed(2) + '%p' });
     
     return { 
       price: currentRate,
