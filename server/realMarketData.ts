@@ -172,6 +172,68 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
   }
 }
 
+// 업비트 API로 금/은 가격 조회 (KRW 기준)
+let previousGoldPrice: number | null = null;
+let previousSilverPrice: number | null = null;
+
+async function fetchUpbitMetalPrice(market: 'GOLD' | 'SILVER'): Promise<{ price: number; change: number } | null> {
+  try {
+    // 업비트는 금과 은을 그램(g) 단위로 거래
+    const marketCode = market === 'GOLD' ? 'KRW-GOLD' : 'KRW-SILVER';
+    const response = await fetchWithTimeout(
+      `https://api.upbit.com/v1/ticker?markets=${marketCode}`,
+      8000
+    );
+
+    if (!response.ok) {
+      console.log(`Upbit ${market} API not accessible`);
+      return null;
+    }
+
+    const data = await response.json();
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return null;
+    }
+
+    const ticker = data[0];
+    const pricePerGram = ticker.trade_price; // 1g당 원화 가격
+    const pricePerDon = pricePerGram * 3.75; // 1돈(3.75g) 가격으로 변환
+    
+    const changeRate = ticker.signed_change_rate * 100; // 24시간 변동률(%)
+
+    // 이전 가격 저장 및 업데이트
+    if (market === 'GOLD') {
+      if (previousGoldPrice) {
+        const actualChange = ((pricePerDon - previousGoldPrice) / previousGoldPrice) * 100;
+        previousGoldPrice = pricePerDon;
+        return {
+          price: pricePerDon,
+          change: parseFloat(actualChange.toFixed(2))
+        };
+      }
+      previousGoldPrice = pricePerDon;
+    } else {
+      if (previousSilverPrice) {
+        const actualChange = ((pricePerDon - previousSilverPrice) / previousSilverPrice) * 100;
+        previousSilverPrice = pricePerDon;
+        return {
+          price: pricePerDon,
+          change: parseFloat(actualChange.toFixed(2))
+        };
+      }
+      previousSilverPrice = pricePerDon;
+    }
+
+    return {
+      price: pricePerDon,
+      change: parseFloat(changeRate.toFixed(2))
+    };
+  } catch (error) {
+    console.log(`Upbit ${market} API error:`, error);
+    return null;
+  }
+}
+
 async function fetchCrypto(id: string): Promise<{ price: number; change: number } | null> {
   try {
     const response = await fetchWithTimeout(
@@ -675,8 +737,8 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchYahooFinance('^KQ11'),
     fetchYahooFinance('^IXIC'),
     fetchYahooFinance('^GSPC'),
-    fetchYahooFinance('GC=F'),
-    fetchYahooFinance('SI=F'),
+    fetchUpbitMetalPrice('GOLD'),
+    fetchUpbitMetalPrice('SILVER'),
     fetchKoreanFuelPrices(),
     fetchRealEstateIndex(),
     fetchCrypto('bitcoin'),
@@ -895,18 +957,9 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '금',
     category: 'commodity',
     getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => {
-      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035);
-      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원/돈`;
-    },
-    formatBuyPrice: (p) => {
-      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 0.97;
-      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
-    },
-    formatSellPrice: (p) => {
-      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 1.03;
-      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
-    },
+    formatPrice: (p) => `${Math.round(p).toLocaleString('ko-KR')}원/돈`,
+    formatBuyPrice: (p) => `${Math.round(p * 0.97).toLocaleString('ko-KR')}원`,
+    formatSellPrice: (p) => `${Math.round(p * 1.03).toLocaleString('ko-KR')}원`,
     messages: {
       sunny: '금값이 올랐어요! 안전자산 인기 상승!',
       rainy: '금값이 내렸어요. 세상이 평화로운가 봐요.',
@@ -919,18 +972,9 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '은',
     category: 'commodity',
     getStatus: (_, change) => getCommodityStatus(change),
-    formatPrice: (p) => {
-      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035);
-      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원/돈`;
-    },
-    formatBuyPrice: (p) => {
-      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 0.95;
-      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
-    },
-    formatSellPrice: (p) => {
-      const pricePerDon = p * cachedUsdKrw * (3.75 / 31.1035) * 1.05;
-      return `${Math.round(pricePerDon).toLocaleString('ko-KR')}원`;
-    },
+    formatPrice: (p) => `${Math.round(p).toLocaleString('ko-KR')}원/돈`,
+    formatBuyPrice: (p) => `${Math.round(p * 0.95).toLocaleString('ko-KR')}원`,
+    formatSellPrice: (p) => `${Math.round(p * 1.05).toLocaleString('ko-KR')}원`,
     messages: {
       sunny: '은값이 올랐어요!',
       rainy: '은값이 내렸어요.',
@@ -1173,8 +1217,8 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     kosdaq: { base: 850, volatility: 50 },
     nasdaq: { base: 19500, volatility: 300 },
     sp500: { base: 6000, volatility: 100 },
-    gold: { base: 2650, volatility: 80 },
-    silver: { base: 31, volatility: 2 },
+    gold: { base: 400000, volatility: 10000 },
+    silver: { base: 6000, volatility: 300 },
     gasoline: { base: 1700, volatility: 50 },
     diesel: { base: 1600, volatility: 50 },
     kbrealestate: { base: 25, volatility: 0.5 },  // 강남 30평 아파트 25억원 기준
@@ -1236,8 +1280,8 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else if (isCrypto) {
     display = `${sign}$${Math.abs(points).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   } else if (id === 'gold' || id === 'silver') {
-    const krwPointsPerDon = points * cachedUsdKrw * (3.75 / 31.1035);
-    display = `${sign}${Math.round(krwPointsPerDon).toLocaleString('ko-KR')}원`;
+    // 업비트 API에서 받은 가격은 이미 원화/돈 단위
+    display = `${sign}${Math.round(points).toLocaleString('ko-KR')}원`;
   } else if (id === 'gasoline' || id === 'diesel') {
     display = `${sign}${Math.round(points)}원`;
   } else if (id === 'kbrealestate') {
