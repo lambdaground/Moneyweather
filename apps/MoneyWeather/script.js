@@ -6,7 +6,9 @@ const API_ENDPOINTS = {
   ecos: '/.netlify/functions/get-ecos',
   reb: '/.netlify/functions/get-reb',
   crypto: '/.netlify/functions/get-crypto',
-  metal: '/.netlify/functions/get-metal'
+  metal: '/.netlify/functions/get-metal',
+  indices: '/.netlify/functions/get-indices',
+  feargreed: '/.netlify/functions/get-feargreed'
 };
 
 // State
@@ -164,7 +166,8 @@ async function fetchAllData() {
       fetchEcosData(),
       fetchRebData(),
       fetchCryptoData(),
-      fetchYahooIndices()
+      fetchIndicesData(),
+      fetchFearGreedData()
     ]);
     
     // Combine all asset data
@@ -273,24 +276,38 @@ async function fetchRebData() {
 
 async function fetchCryptoData() {
   try {
-    // Try public CoinGecko API first
-    const response = await fetchWithTimeout('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
-    if (!response.ok) {
-      const netlifyResponse = await fetchWithTimeout(API_ENDPOINTS.crypto);
-      if (!netlifyResponse.ok) return getCryptoMockData();
-      return parseCryptoData(await netlifyResponse.json());
-    }
-    return parseCryptoData(await response.json());
+    const response = await fetchWithTimeout(API_ENDPOINTS.crypto);
+    if (!response.ok) return getCryptoMockData();
+    const data = await response.json();
+    return parseCryptoData(data);
   } catch (error) {
     console.log('Crypto API error:', error);
     return getCryptoMockData();
   }
 }
 
-async function fetchYahooIndices() {
-  // Yahoo Finance data would come from Netlify function
-  // For now, return mock data with realistic structure
-  return getIndicesMockData();
+async function fetchIndicesData() {
+  try {
+    const response = await fetchWithTimeout(API_ENDPOINTS.indices);
+    if (!response.ok) return getIndicesMockData();
+    const data = await response.json();
+    return parseIndicesData(data);
+  } catch (error) {
+    console.log('Indices API error:', error);
+    return getIndicesMockData();
+  }
+}
+
+async function fetchFearGreedData() {
+  try {
+    const response = await fetchWithTimeout(API_ENDPOINTS.feargreed);
+    if (!response.ok) return getFearGreedMockData();
+    const data = await response.json();
+    return parseFearGreedData(data);
+  } catch (error) {
+    console.log('Fear & Greed API error:', error);
+    return getFearGreedMockData();
+  }
 }
 
 // Data Parsers
@@ -632,6 +649,201 @@ function parseCryptoData(data) {
   }
   
   return assets;
+}
+
+function parseIndicesData(data) {
+  const assets = [];
+  
+  if (data.kospi) {
+    assets.push(createAsset({
+      id: 'kospi',
+      name: 'KOSPI',
+      category: 'index',
+      price: data.kospi.price,
+      change: data.kospi.change || 0,
+      priceDisplay: `${data.kospi.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} pt`,
+      changePointsDisplay: `${data.kospi.change >= 0 ? '+' : ''}${data.kospi.changePoints?.toFixed(2) || '0.00'}pt`,
+      status: getIndexStatus(data.kospi.change),
+      message: getKospiMessage(data.kospi.change),
+      advice: '코스피는 우리나라 대표 주가지수예요. 삼성전자, 현대차 등 대형주가 포함되어 있어요.'
+    }));
+  }
+  
+  if (data.kosdaq) {
+    assets.push(createAsset({
+      id: 'kosdaq',
+      name: 'KOSDAQ',
+      category: 'index',
+      price: data.kosdaq.price,
+      change: data.kosdaq.change || 0,
+      priceDisplay: `${data.kosdaq.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} pt`,
+      changePointsDisplay: `${data.kosdaq.change >= 0 ? '+' : ''}${data.kosdaq.changePoints?.toFixed(2) || '0.00'}pt`,
+      status: getIndexStatus(data.kosdaq.change),
+      message: getKosdaqMessage(data.kosdaq.change),
+      advice: '코스닥은 IT, 바이오 등 성장주가 많은 시장이에요. 변동성이 코스피보다 큰 편이에요.'
+    }));
+  }
+  
+  if (data.nasdaq) {
+    assets.push(createAsset({
+      id: 'nasdaq',
+      name: 'NASDAQ',
+      category: 'index',
+      price: data.nasdaq.price,
+      change: data.nasdaq.change || 0,
+      priceDisplay: `${data.nasdaq.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} pt`,
+      changePointsDisplay: `${data.nasdaq.change >= 0 ? '+' : ''}${data.nasdaq.changePoints?.toFixed(2) || '0.00'}pt`,
+      status: getIndexStatus(data.nasdaq.change),
+      message: getNasdaqMessage(data.nasdaq.change),
+      advice: '나스닥은 미국 기술주 중심 지수예요. 애플, 테슬라, 엔비디아 등이 포함되어 있어요.'
+    }));
+  }
+  
+  if (data.sp500) {
+    assets.push(createAsset({
+      id: 'sp500',
+      name: 'S&P 500',
+      category: 'index',
+      price: data.sp500.price,
+      change: data.sp500.change || 0,
+      priceDisplay: `${data.sp500.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} pt`,
+      changePointsDisplay: `${data.sp500.change >= 0 ? '+' : ''}${data.sp500.changePoints?.toFixed(2) || '0.00'}pt`,
+      status: getIndexStatus(data.sp500.change),
+      message: getSp500Message(data.sp500.change),
+      advice: 'S&P 500은 미국 대형주 500개 기업의 지수예요. 미국 경제를 가장 잘 대표하는 지수예요.'
+    }));
+  }
+  
+  if (data.dowjones) {
+    assets.push(createAsset({
+      id: 'dowjones',
+      name: '다우존스',
+      category: 'index',
+      price: data.dowjones.price,
+      change: data.dowjones.change || 0,
+      priceDisplay: `${data.dowjones.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} pt`,
+      changePointsDisplay: `${data.dowjones.change >= 0 ? '+' : ''}${data.dowjones.changePoints?.toFixed(2) || '0.00'}pt`,
+      status: getIndexStatus(data.dowjones.change),
+      message: getDowjonesMessage(data.dowjones.change),
+      advice: '다우존스는 미국 대표 30개 우량 기업의 지수예요. 역사가 가장 오래된 주가지수예요.'
+    }));
+  }
+  
+  if (data.bonds10y) {
+    assets.push(createAsset({
+      id: 'bonds',
+      name: '미국 10년물 국채',
+      category: 'bonds',
+      price: data.bonds10y.yield,
+      change: data.bonds10y.change || 0,
+      priceDisplay: `${data.bonds10y.yield.toFixed(2)}%`,
+      changePointsDisplay: `${data.bonds10y.change >= 0 ? '+' : ''}${data.bonds10y.change.toFixed(2)}%p`,
+      status: getBondStatus(data.bonds10y.change),
+      message: getUsBond10yMessage(data.bonds10y.change),
+      advice: '미국 10년물 국채 금리는 전 세계 금리의 기준이에요. 금리가 높을 때는 예금과 적금이 유리해요.'
+    }));
+  }
+  
+  if (data.bonds2y) {
+    assets.push(createAsset({
+      id: 'bonds2y',
+      name: '미국 2년물 국채',
+      category: 'bonds',
+      price: data.bonds2y.yield,
+      change: data.bonds2y.change || 0,
+      priceDisplay: `${data.bonds2y.yield.toFixed(2)}%`,
+      changePointsDisplay: `${data.bonds2y.change >= 0 ? '+' : ''}${data.bonds2y.change.toFixed(2)}%p`,
+      status: getBondStatus(data.bonds2y.change),
+      message: getUsBond2yMessage(data.bonds2y.change),
+      advice: '2년물 국채 금리는 연준의 금리 정책 기대를 반영해요. 단기 금리 방향을 알 수 있어요.'
+    }));
+  }
+  
+  return assets;
+}
+
+function parseFearGreedData(data) {
+  if (!data || !data.value) return getFearGreedMockData();
+  
+  const value = data.value;
+  const change = data.change || 0;
+  const label = getFearGreedLabel(value);
+  
+  return [createAsset({
+    id: 'feargreed',
+    name: '공포탐욕지수',
+    category: 'index',
+    price: value,
+    change: change,
+    priceDisplay: `${value}점 (${label})`,
+    changePointsDisplay: `${change >= 0 ? '+' : ''}${change}pt`,
+    status: getFearGreedStatus(value, change),
+    message: getFearGreedMessage(value),
+    advice: '0~100 사이 점수로, 25 이하면 극도의 공포, 75 이상이면 극도의 탐욕을 나타내요. 워런 버핏의 "남들이 두려워할 때 탐욕스러워라"를 떠올려보세요!'
+  })];
+}
+
+function getFearGreedLabel(value) {
+  if (value <= 25) return '극도의 공포';
+  if (value <= 45) return '공포';
+  if (value <= 55) return '중립';
+  if (value <= 75) return '탐욕';
+  return '극도의 탐욕';
+}
+
+function getKospiMessage(change) {
+  if (Math.abs(change) > 2) return 'KOSPI 롤러코스터!';
+  if (change > 0.5) return 'KOSPI가 상승세입니다!';
+  if (change < -0.5) return 'KOSPI가 하락세입니다.';
+  return 'KOSPI가 쉬어가는 중이에요.';
+}
+
+function getKosdaqMessage(change) {
+  if (Math.abs(change) > 2) return 'KOSDAQ 롤러코스터!';
+  if (change > 0.5) return 'KOSDAQ이 상승세입니다!';
+  if (change < -0.5) return 'KOSDAQ이 하락세입니다.';
+  return 'KOSDAQ이 쉬어가는 중이에요.';
+}
+
+function getNasdaqMessage(change) {
+  if (Math.abs(change) > 2) return 'NASDAQ 롤러코스터!';
+  if (change > 0.5) return 'NASDAQ이 상승세입니다!';
+  if (change < -0.5) return 'NASDAQ이 하락세입니다.';
+  return 'NASDAQ이 쉬어가는 중이에요.';
+}
+
+function getSp500Message(change) {
+  if (Math.abs(change) > 2) return 'S&P 500 롤러코스터!';
+  if (change > 0.5) return 'S&P 500이 상승세입니다!';
+  if (change < -0.5) return 'S&P 500이 하락세입니다.';
+  return 'S&P 500이 안정적이에요.';
+}
+
+function getDowjonesMessage(change) {
+  if (Math.abs(change) > 2) return '다우존스 롤러코스터!';
+  if (change > 0.5) return '다우존스가 상승세입니다!';
+  if (change < -0.5) return '다우존스가 하락세입니다.';
+  return '다우존스가 안정적이에요.';
+}
+
+function getUsBond10yMessage(change) {
+  if (change > 0.1) return '10년물 금리가 올랐어요.';
+  if (change < -0.1) return '10년물 금리가 내렸어요.';
+  return '10년물 금리가 안정적이에요.';
+}
+
+function getUsBond2yMessage(change) {
+  if (change > 0.1) return '2년물 금리가 올랐어요.';
+  if (change < -0.1) return '2년물 금리가 내렸어요.';
+  return '2년물 금리가 안정적이에요.';
+}
+
+function getFearGreedMessage(value) {
+  if (value <= 25) return '시장이 극도로 두려워하고 있어요!';
+  if (value <= 45) return '시장이 불안해하고 있어요.';
+  if (value <= 55) return '시장이 중립적이에요.';
+  if (value <= 75) return '시장이 탐욕적이에요.';
+  return '시장이 극도로 탐욕적이에요!';
 }
 
 // Status determination functions
@@ -1042,12 +1254,6 @@ function getCryptoMockData() {
 function getIndicesMockData() {
   return [
     createAsset({
-      id: 'feargreed', name: '공포탐욕지수', category: 'index',
-      price: 65, change: 5, priceDisplay: '65점 (탐욕)', changePointsDisplay: '+5pt',
-      status: 'cloudy', message: '시장이 약간 탐욕적이에요.',
-      advice: '0~100 사이 점수로, 50 이하면 공포, 50 이상이면 탐욕을 나타내요.'
-    }),
-    createAsset({
       id: 'kospi', name: 'KOSPI', category: 'index',
       price: 2550, change: 0.8, priceDisplay: '2,550.00 pt', changePointsDisplay: '+20.40pt',
       status: 'sunny', message: 'KOSPI가 상승세입니다!',
@@ -1088,6 +1294,17 @@ function getIndicesMockData() {
       price: 4.15, change: -0.01, priceDisplay: '4.15%', changePointsDisplay: '-0.01%p',
       status: 'cloudy', message: '단기 금리가 안정적이에요.',
       advice: '2년물 국채 금리는 연준의 금리 정책 기대를 반영해요.'
+    })
+  ];
+}
+
+function getFearGreedMockData() {
+  return [
+    createAsset({
+      id: 'feargreed', name: '공포탐욕지수', category: 'index',
+      price: 65, change: 5, priceDisplay: '65점 (탐욕)', changePointsDisplay: '+5pt',
+      status: 'cloudy', message: '시장이 탐욕적이에요.',
+      advice: '0~100 사이 점수로, 25 이하면 극도의 공포, 75 이상이면 극도의 탐욕을 나타내요.'
     })
   ];
 }
