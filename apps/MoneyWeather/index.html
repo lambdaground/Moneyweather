@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘의 머니 웨더 - 금융 날씨 예보</title>
+  <meta name="description" content="복잡한 경제 데이터를 날씨로 쉽게 이해하는 금융 초보자를 위한 대시보드">
+  <link rel="stylesheet" href="../../global.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="app-container">
+    <header class="header">
+      <div class="header-content">
+        <h1 class="header-title">
+          <span class="header-icon">☀️</span>
+          오늘의 머니 웨더
+        </h1>
+        <div class="header-actions">
+          <button id="btn-edit-mode" class="btn btn-ghost" data-testid="button-edit-mode" title="편집 모드">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
+          <button id="btn-refresh" class="btn btn-ghost" data-testid="button-refresh" title="새로고침">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+          <button id="btn-theme" class="btn btn-ghost" data-testid="button-theme" title="테마 변경">
+            <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div id="timestamp" class="timestamp" data-testid="text-timestamp"></div>
+
+      <div class="filter-section">
+        <span class="filter-label">카테고리</span>
+        <div id="category-filters" class="filter-buttons" data-testid="filter-category">
+          <button class="filter-btn active" data-category="all" data-testid="button-category-filter-all">전체</button>
+          <button class="filter-btn" data-category="currency" data-testid="button-category-filter-currency">환율</button>
+          <button class="filter-btn" data-category="index" data-testid="button-category-filter-index">지수</button>
+          <button class="filter-btn" data-category="commodity" data-testid="button-category-filter-commodity">원자재</button>
+          <button class="filter-btn" data-category="crypto" data-testid="button-category-filter-crypto">코인</button>
+          <button class="filter-btn" data-category="bonds" data-testid="button-category-filter-bonds">금리</button>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <span class="filter-label">날씨 상태</span>
+        <div id="weather-filters" class="filter-buttons" data-testid="filter-weather">
+          <button class="filter-btn active" data-weather="all" data-testid="button-weather-filter-all">전체</button>
+          <button class="filter-btn" data-weather="sunny" data-testid="button-weather-filter-sunny">
+            <span class="weather-icon-small sunny-icon"></span>맑음
+          </button>
+          <button class="filter-btn" data-weather="cloudy" data-testid="button-weather-filter-cloudy">
+            <span class="weather-icon-small cloudy-icon"></span>흐림
+          </button>
+          <button class="filter-btn" data-weather="rainy" data-testid="button-weather-filter-rainy">
+            <span class="weather-icon-small rainy-icon"></span>비
+          </button>
+          <button class="filter-btn" data-weather="thunder" data-testid="button-weather-filter-thunder">
+            <span class="weather-icon-small thunder-icon"></span>번개
+          </button>
+        </div>
+      </div>
+
+      <p id="summary-message" class="summary-message" data-testid="text-summary"></p>
+      <p id="edit-mode-hint" class="edit-mode-hint hidden" data-testid="text-edit-mode-hint">카드를 드래그해서 순서를 변경하세요</p>
+
+      <div id="loading" class="loading-container">
+        <div class="loading-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </div>
+
+      <div id="error" class="error-container hidden">
+        <p class="error-message">데이터를 불러오는 데 실패했어요. 다시 시도해주세요.</p>
+      </div>
+
+      <div id="empty" class="empty-container hidden">
+        <p class="empty-message">표시할 자산이 없어요.</p>
+      </div>
+
+      <div id="cards-grid" class="cards-grid hidden" data-testid="grid-weather-cards"></div>
+    </main>
+
+    <footer class="footer">
+      <p data-testid="text-footer">머니 웨더는 금융 초보자를 위한 정보 제공 서비스입니다. 투자 결정은 신중하게 하세요.</p>
+    </footer>
+  </div>
+
+  <div id="modal" class="modal hidden" data-testid="modal-asset-detail">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <span id="modal-weather-icon" class="modal-weather-icon"></span>
+          <h2 id="modal-title" class="modal-title" data-testid="text-modal-title"></h2>
+        </div>
+        <button id="modal-close" class="btn btn-ghost modal-close" data-testid="button-close-modal">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-price-section">
+          <span id="modal-price" class="modal-price" data-testid="text-modal-price"></span>
+          <div id="modal-buy-sell" class="modal-buy-sell hidden">
+            <span id="modal-buy-price" data-testid="text-modal-buy-price"></span>
+            <span id="modal-sell-price" data-testid="text-modal-sell-price"></span>
+          </div>
+          <div class="modal-badges">
+            <span id="modal-change-badge" class="badge" data-testid="badge-modal-change"></span>
+            <span id="modal-change-points-badge" class="badge badge-outline" data-testid="badge-modal-change-points"></span>
+          </div>
+        </div>
+        <p id="modal-message" class="modal-message" data-testid="text-modal-message"></p>
+        <div id="modal-chart" class="modal-chart hidden" data-testid="chart-price-history">
+          <p class="chart-label">최근 5일 추이</p>
+          <canvas id="chart-canvas"></canvas>
+        </div>
+        <div class="modal-advice">
+          <div class="advice-header">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4.8 2.3A.3.3 0 1 0 5 2.3a.3.3 0 0 0-.2 0"/>
+              <path d="M22 12a10 10 0 1 0-20 0"/>
+              <path d="M9 11v3"/>
+              <path d="M15 11v3"/>
+              <path d="M12 19v2"/>
+              <path d="M12 2v6"/>
+            </svg>
+            <span>머니 박사의 조언</span>
+          </div>
+          <p id="modal-advice" class="advice-text" data-testid="text-modal-advice"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,695 @@
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --border: #e5e5e5;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --primary: #f97316;
+  --primary-foreground: #ffffff;
+  
+  --sunny-bg: #fff7ed;
+  --sunny-border: #fed7aa;
+  --sunny-icon-bg: #ffedd5;
+  --sunny-color: #f97316;
+  
+  --rainy-bg: #f8fafc;
+  --rainy-border: #cbd5e1;
+  --rainy-icon-bg: #f1f5f9;
+  --rainy-color: #64748b;
+  
+  --cloudy-bg: #f9fafb;
+  --cloudy-border: #e5e7eb;
+  --cloudy-icon-bg: #f3f4f6;
+  --cloudy-color: #6b7280;
+  
+  --thunder-bg: #faf5ff;
+  --thunder-border: #d8b4fe;
+  --thunder-icon-bg: #f3e8ff;
+  --thunder-color: #a855f7;
+  
+  --green-bg: #dcfce7;
+  --green-color: #15803d;
+  --green-border: #86efac;
+  
+  --red-bg: #fee2e2;
+  --red-color: #b91c1c;
+  --red-border: #fca5a5;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --border: #262626;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  
+  --sunny-bg: rgba(154, 52, 18, 0.3);
+  --sunny-border: #9a3412;
+  --sunny-icon-bg: rgba(124, 45, 18, 0.5);
+  --sunny-color: #fb923c;
+  
+  --rainy-bg: rgba(30, 41, 59, 0.5);
+  --rainy-border: #334155;
+  --rainy-icon-bg: #1e293b;
+  --rainy-color: #94a3b8;
+  
+  --cloudy-bg: rgba(17, 24, 39, 0.5);
+  --cloudy-border: #374151;
+  --cloudy-icon-bg: #1f2937;
+  --cloudy-color: #9ca3af;
+  
+  --thunder-bg: rgba(88, 28, 135, 0.3);
+  --thunder-border: #7e22ce;
+  --thunder-icon-bg: rgba(107, 33, 168, 0.5);
+  --thunder-color: #c084fc;
+  
+  --green-bg: rgba(22, 101, 52, 0.5);
+  --green-color: #86efac;
+  --green-border: #166534;
+  
+  --red-bg: rgba(153, 27, 27, 0.5);
+  --red-color: #fca5a5;
+  --red-border: #991b1b;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  border-bottom: 1px solid var(--border);
+  background-color: var(--background);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-icon {
+  font-size: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+}
+
+.btn-ghost {
+  padding: 0.5rem;
+  color: var(--foreground);
+}
+
+.btn-ghost:hover {
+  background-color: var(--muted);
+}
+
+.btn-ghost.active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.icon-moon {
+  display: none;
+}
+
+.dark .icon-sun {
+  display: none;
+}
+
+.dark .icon-moon {
+  display: block;
+}
+
+.main-content {
+  flex: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  width: 100%;
+}
+
+.timestamp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin-bottom: 1rem;
+}
+
+.filter-section {
+  margin-bottom: 0.75rem;
+}
+
+.filter-label {
+  display: block;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-bottom: 0.5rem;
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background-color: var(--background);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background-color: var(--muted);
+}
+
+.filter-btn.active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.weather-icon-small {
+  width: 1rem;
+  height: 1rem;
+  display: inline-block;
+}
+
+.sunny-icon::before { content: "☀️"; }
+.cloudy-icon::before { content: "☁️"; }
+.rainy-icon::before { content: "🌧️"; }
+.thunder-icon::before { content: "⚡"; }
+
+.summary-message {
+  text-align: center;
+  color: var(--muted-foreground);
+  padding: 0.5rem 0 1rem;
+}
+
+.edit-mode-hint {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  padding-bottom: 0.5rem;
+}
+
+.loading-container,
+.error-container,
+.empty-container {
+  padding: 2rem 0;
+}
+
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .loading-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .loading-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1280px) {
+  .loading-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.skeleton-card {
+  height: 10rem;
+  border-radius: 0.5rem;
+  background-color: var(--muted);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.error-message,
+.empty-message {
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.error-message {
+  color: var(--red-color);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .cards-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 1280px) {
+  .cards-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.weather-card {
+  border-radius: 0.5rem;
+  border: 1px solid;
+  padding: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  user-select: none;
+}
+
+.weather-card:hover {
+  transform: scale(1.02);
+}
+
+.weather-card:active {
+  transform: scale(0.98);
+}
+
+.weather-card.sunny {
+  background-color: var(--sunny-bg);
+  border-color: var(--sunny-border);
+}
+
+.weather-card.rainy {
+  background-color: var(--rainy-bg);
+  border-color: var(--rainy-border);
+}
+
+.weather-card.cloudy {
+  background-color: var(--cloudy-bg);
+  border-color: var(--cloudy-border);
+}
+
+.weather-card.thunder {
+  background-color: var(--thunder-bg);
+  border-color: var(--thunder-border);
+}
+
+.weather-card.dragging {
+  opacity: 0.5;
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.weather-card.drag-over {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.card-name {
+  font-weight: 600;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-status-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: #22c55e;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.market-countdown {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.card-price {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-top: 0.25rem;
+}
+
+.card-buy-sell {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.buy-price {
+  color: var(--red-color);
+  font-weight: 500;
+}
+
+.sell-price {
+  color: var(--green-color);
+  font-weight: 500;
+}
+
+.card-icon {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.sunny .card-icon {
+  background-color: var(--sunny-icon-bg);
+  color: var(--sunny-color);
+}
+
+.rainy .card-icon {
+  background-color: var(--rainy-icon-bg);
+  color: var(--rainy-color);
+}
+
+.cloudy .card-icon {
+  background-color: var(--cloudy-icon-bg);
+  color: var(--cloudy-color);
+}
+
+.thunder .card-icon {
+  background-color: var(--thunder-icon-bg);
+  color: var(--thunder-color);
+}
+
+.card-message {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.card-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.badge.positive {
+  background-color: var(--green-bg);
+  color: var(--green-color);
+}
+
+.badge.negative {
+  background-color: var(--red-bg);
+  color: var(--red-color);
+}
+
+.badge-outline {
+  background-color: transparent;
+  border: 1px solid;
+}
+
+.badge-outline.positive {
+  border-color: var(--green-border);
+  color: var(--green-color);
+}
+
+.badge-outline.negative {
+  border-color: var(--red-border);
+  color: var(--red-color);
+}
+
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 1rem;
+  text-align: center;
+}
+
+.footer p {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  background-color: var(--background);
+  border-radius: 0.5rem;
+  max-width: 32rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-weather-icon {
+  font-size: 2.5rem;
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  flex-shrink: 0;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-price-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-price {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.modal-buy-sell {
+  display: flex;
+  gap: 1rem;
+  font-size: 1rem;
+  color: var(--muted-foreground);
+}
+
+.modal-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.modal-badges .badge {
+  font-size: 1rem;
+}
+
+.modal-message {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.modal-chart {
+  background-color: var(--muted);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.chart-label {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+#chart-canvas {
+  width: 100%;
+  height: 160px;
+}
+
+.modal-advice {
+  background-color: var(--muted);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.advice-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.advice-text {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
