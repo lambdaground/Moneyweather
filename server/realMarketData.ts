@@ -369,17 +369,17 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
   lastFetch = now;
   
   try {
-    // ECOS API: 한국은행 기준금리 통계표 코드 722Y001
+    // ECOS API: 한국은행 기준금리 통계표 코드 722Y001, 항목코드 0101000
     // 최근 2개월 데이터 조회 (월별)
     const today = new Date();
     const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-    const startYear = today.getMonth() <= 1 ? today.getFullYear() - 1 : today.getFullYear();
-    const startMonth = today.getMonth() <= 1 ? 12 + today.getMonth() : today.getMonth();
+    const startYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
+    const startMonth = today.getMonth() === 0 ? 12 : today.getMonth();
     const startDate = `${startYear}${String(startMonth).padStart(2, '0')}`;
     
     const url = `https://ecos.bok.or.kr/api/StatisticSearch/${apiKey}/json/kr/1/10/722Y001/M/${startDate}/${endDate}/0101000`;
     
-    console.log('Fetching BOK base rate from ECOS API...');
+    console.log('Fetching BOK base rate from ECOS API:', url.replace(apiKey, '***'));
     const response = await fetchWithTimeout(url, 10000);
     
     if (!response.ok) {
@@ -388,9 +388,17 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
     }
     
     const data = await response.json();
+    
+    // API 응답 구조 확인
+    if (!data.StatisticSearch || data.StatisticSearch.RESULT) {
+      const result = data.StatisticSearch?.RESULT;
+      console.log('ECOS API error:', result?.MESSAGE || 'Unknown error');
+      return null;
+    }
+    
     const searchResult = data.StatisticSearch.row;
     
-    if (!searchResult || !searchResult.length) {
+    if (!searchResult || !Array.isArray(searchResult) || searchResult.length === 0) {
       console.log('No data in ECOS API response');
       return null;
     }
@@ -399,18 +407,29 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
     const latestRow = searchResult[searchResult.length - 1];
     const currentRate = parseFloat(latestRow.DATA_VALUE);
     
+    if (isNaN(currentRate)) {
+      console.log('Invalid data value:', latestRow.DATA_VALUE);
+      return null;
+    }
+    
     let change = 0;
     if (searchResult.length >= 2) {
       const previousRow = searchResult[searchResult.length - 2];
       const previousRate = parseFloat(previousRow.DATA_VALUE);
-      change = currentRate - previousRate;  // 변화 계산
+      if (!isNaN(previousRate)) {
+        change = currentRate - previousRate;
+      }
     } else if (previousBokRate !== null) {
       change = currentRate - previousBokRate;
     }
     
     previousBokRate = currentRate;
     
-    console.log('BOK Base Rate fetched:', { rate: currentRate.toFixed(2) + '%', change: change.toFixed(2) + '%p' });
+    console.log('BOK Base Rate fetched:', { 
+      rate: currentRate.toFixed(2) + '%', 
+      change: change.toFixed(2) + '%p',
+      period: latestRow.TIME
+    });
     
     return { 
       price: currentRate,
