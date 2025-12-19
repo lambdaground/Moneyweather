@@ -120,87 +120,71 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
 
 async function fetchYahooFinance(symbol: string): Promise<{ price: number; change: number; previousClose?: number; chartData?: { time: string; price: number }[] } | null> {
   try {
-    const response = await fetchWithTimeout(
+    // For stock indices, use daily data to get accurate closing prices
+    // Hourly data doesn't capture the exact market close time
+    const isStockIndex = symbol === '^KS11' || symbol === '^KQ11' || symbol === '^IXIC' || symbol === '^GSPC' || symbol === '^DJI';
+    
+    // Fetch hourly data for chart display
+    const hourlyResponse = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=5d`
     );
 
-    if (!response.ok) return null;
+    if (!hourlyResponse.ok) return null;
 
-    const data = await response.json();
-    const result = data.chart?.result?.[0];
-    if (!result) return null;
+    const hourlyData = await hourlyResponse.json();
+    const hourlyResult = hourlyData.chart?.result?.[0];
+    if (!hourlyResult) return null;
 
-    const meta = result.meta;
-    const timestamps = result.timestamp;
-    const quotes = result.indicators?.quote?.[0];
-    
-    // For stock indices, calculate current price and previous close from chart data
-    // This ensures correct data on weekends/holidays (using last trading day vs day before)
-    const isStockIndex = symbol === '^KS11' || symbol === '^KQ11' || symbol === '^IXIC' || symbol === '^GSPC' || symbol === '^DJI';
-    const isKoreanIndex = symbol === '^KS11' || symbol === '^KQ11';
+    const meta = hourlyResult.meta;
+    const timestamps = hourlyResult.timestamp;
+    const quotes = hourlyResult.indicators?.quote?.[0];
     
     let currentPrice: number | undefined;
     let prevClose: number | undefined;
     
-    if (isStockIndex && timestamps && quotes?.close) {
-      // Use appropriate timezone
-      const timezone = isKoreanIndex ? 'Asia/Seoul' : 'America/New_York';
-      const dateFormatter = new Intl.DateTimeFormat('en-CA', { 
-        timeZone: timezone, 
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
-      });
-      const timeFormatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: timezone,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-      
-      // Regular trading hours (to filter out pre-market/after-hours)
-      // Korean: 09:00-15:30 KST
-      // US: 09:30-16:00 ET
-      const regularHoursStart = isKoreanIndex ? '09:00' : '09:30';
-      const regularHoursEnd = isKoreanIndex ? '15:30' : '16:00';
-      
-      // Collect unique trading days with their last close prices (only regular hours)
-      const tradingDays: Map<string, { lastClose: number; lastTimestamp: number }> = new Map();
-      
-      for (let i = 0; i < timestamps.length; i++) {
-        const closePrice = quotes.close[i];
-        if (closePrice !== null && closePrice !== undefined) {
-          const timestampDate = new Date(timestamps[i] * 1000);
-          const dateStr = dateFormatter.format(timestampDate);
-          const timeStr = timeFormatter.format(timestampDate);
+    // For stock indices, fetch daily data to get accurate closing prices
+    if (isStockIndex) {
+      try {
+        const dailyResponse = await fetchWithTimeout(
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1mo`
+        );
+        
+        if (dailyResponse.ok) {
+          const dailyData = await dailyResponse.json();
+          const dailyResult = dailyData.chart?.result?.[0];
           
-          // Only include data points within regular trading hours
-          if (timeStr >= regularHoursStart && timeStr <= regularHoursEnd) {
-            const existing = tradingDays.get(dateStr);
-            // Keep the latest data point for each day
-            if (!existing || timestamps[i] > existing.lastTimestamp) {
-              tradingDays.set(dateStr, { lastClose: closePrice, lastTimestamp: timestamps[i] });
+          if (dailyResult?.timestamp && dailyResult?.indicators?.quote?.[0]?.close) {
+            const dailyTimestamps = dailyResult.timestamp;
+            const dailyCloses = dailyResult.indicators.quote[0].close;
+            
+            // Get the last two valid daily closes
+            const validDays: { date: string; close: number }[] = [];
+            for (let i = dailyTimestamps.length - 1; i >= 0 && validDays.length < 2; i--) {
+              if (dailyCloses[i] !== null && dailyCloses[i] !== undefined) {
+                const date = new Date(dailyTimestamps[i] * 1000);
+                validDays.unshift({
+                  date: date.toISOString().split('T')[0],
+                  close: dailyCloses[i]
+                });
+              }
+            }
+            
+            if (validDays.length >= 2) {
+              currentPrice = validDays[validDays.length - 1].close;
+              prevClose = validDays[validDays.length - 2].close;
+              console.log(`[Yahoo Finance] ${symbol}: Using daily data - currentPrice=${currentPrice} (${validDays[validDays.length - 1].date}), prevClose=${prevClose} (${validDays[validDays.length - 2].date})`);
+            } else if (validDays.length === 1) {
+              currentPrice = validDays[0].close;
+              console.log(`[Yahoo Finance] ${symbol}: Only one daily close found - currentPrice=${currentPrice} (${validDays[0].date})`);
             }
           }
         }
-      }
-      
-      // Sort trading days and get the last two
-      const sortedDays = Array.from(tradingDays.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-      
-      if (sortedDays.length >= 2) {
-        // Last trading day = current price (e.g., Friday close on weekend)
-        // Previous trading day = previous close (e.g., Thursday close on weekend)
-        currentPrice = sortedDays[0][1].lastClose;
-        prevClose = sortedDays[1][1].lastClose;
-        console.log(`[Yahoo Finance] ${symbol}: Using chart data (regular hours only) - currentPrice=${currentPrice} (${sortedDays[0][0]}), prevClose=${prevClose} (${sortedDays[1][0]})`);
-      } else if (sortedDays.length === 1) {
-        currentPrice = sortedDays[0][1].lastClose;
-        console.log(`[Yahoo Finance] ${symbol}: Only one trading day found - currentPrice=${currentPrice} (${sortedDays[0][0]})`);
+      } catch (dailyError) {
+        console.log(`[Yahoo Finance] ${symbol}: Daily data fetch failed, falling back to meta values`);
       }
     }
     
-    // Fallback to API values if chart calculation failed
+    // Fallback to API values if daily calculation failed or not a stock index
     if (!currentPrice) {
       currentPrice = meta?.regularMarketPrice;
     }
