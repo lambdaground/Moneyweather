@@ -10,7 +10,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const apiKey = process.env.REB_API_KEY;
+    const apiKey = process.env.VITE_REB_API_KEY;
     
     if (!apiKey) {
       return {
