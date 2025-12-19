@@ -131,81 +131,92 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
     if (!result) return null;
 
     const meta = result.meta;
-    const price = meta?.regularMarketPrice;
-    
-    if (!price) return null;
-
     const timestamps = result.timestamp;
     const quotes = result.indicators?.quote?.[0];
     
-    // For Korean indices (KOSPI, KOSDAQ), calculate previous close from chart data
-    // because Yahoo Finance API returns incorrect previousClose values
+    // For stock indices, calculate current price and previous close from chart data
+    // This ensures correct data on weekends/holidays (using last trading day vs day before)
+    const isStockIndex = symbol === '^KS11' || symbol === '^KQ11' || symbol === '^IXIC' || symbol === '^GSPC' || symbol === '^DJI';
     const isKoreanIndex = symbol === '^KS11' || symbol === '^KQ11';
+    
+    let currentPrice: number | undefined;
     let prevClose: number | undefined;
     
-    if (isKoreanIndex && timestamps && quotes?.close) {
-      // Get today's date in KST (Korea Standard Time, UTC+9)
-      const now = new Date();
-      const kstFormatter = new Intl.DateTimeFormat('en-CA', { 
-        timeZone: 'Asia/Seoul', 
+    if (isStockIndex && timestamps && quotes?.close) {
+      // Use appropriate timezone
+      const timezone = isKoreanIndex ? 'Asia/Seoul' : 'America/New_York';
+      const dateFormatter = new Intl.DateTimeFormat('en-CA', { 
+        timeZone: timezone, 
         year: 'numeric', 
         month: '2-digit', 
         day: '2-digit' 
       });
-      const todayKST = kstFormatter.format(now); // YYYY-MM-DD in KST
+      const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
       
-      // Find the last close price from the previous trading day
-      // Iterate from the end (most recent) to find the most recent previous day's last data point
-      let previousDayClose: number | undefined;
-      let previousDayDate: string | undefined;
+      // Regular trading hours (to filter out pre-market/after-hours)
+      // Korean: 09:00-15:30 KST
+      // US: 09:30-16:00 ET
+      const regularHoursStart = isKoreanIndex ? '09:00' : '09:30';
+      const regularHoursEnd = isKoreanIndex ? '15:30' : '16:00';
       
-      for (let i = timestamps.length - 1; i >= 0; i--) {
+      // Collect unique trading days with their last close prices (only regular hours)
+      const tradingDays: Map<string, { lastClose: number; lastTimestamp: number }> = new Map();
+      
+      for (let i = 0; i < timestamps.length; i++) {
         const closePrice = quotes.close[i];
         if (closePrice !== null && closePrice !== undefined) {
-          // Convert Unix timestamp to KST date
           const timestampDate = new Date(timestamps[i] * 1000);
-          const dateStr = kstFormatter.format(timestampDate);
+          const dateStr = dateFormatter.format(timestampDate);
+          const timeStr = timeFormatter.format(timestampDate);
           
-          if (dateStr < todayKST) {
-            // This is from a previous day (before today in KST)
-            if (!previousDayDate) {
-              // First previous day found - this is the most recent previous day
-              previousDayDate = dateStr;
-            }
-            
-            if (dateStr === previousDayDate) {
-              // Same previous day - we want the LAST (latest) data point of this day
-              // Since we're iterating backwards, the first match is the latest
-              if (!previousDayClose) {
-                previousDayClose = closePrice;
-              }
-            } else if (dateStr < previousDayDate) {
-              // Found an even older day, stop
-              break;
+          // Only include data points within regular trading hours
+          if (timeStr >= regularHoursStart && timeStr <= regularHoursEnd) {
+            const existing = tradingDays.get(dateStr);
+            // Keep the latest data point for each day
+            if (!existing || timestamps[i] > existing.lastTimestamp) {
+              tradingDays.set(dateStr, { lastClose: closePrice, lastTimestamp: timestamps[i] });
             }
           }
         }
       }
       
-      // Use the last close of the previous trading day
-      if (previousDayClose) {
-        prevClose = previousDayClose;
-        console.log(`[Yahoo Finance] ${symbol}: Calculated prevClose from chart data: ${prevClose} (from ${previousDayDate})`);
+      // Sort trading days and get the last two
+      const sortedDays = Array.from(tradingDays.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+      
+      if (sortedDays.length >= 2) {
+        // Last trading day = current price (e.g., Friday close on weekend)
+        // Previous trading day = previous close (e.g., Thursday close on weekend)
+        currentPrice = sortedDays[0][1].lastClose;
+        prevClose = sortedDays[1][1].lastClose;
+        console.log(`[Yahoo Finance] ${symbol}: Using chart data (regular hours only) - currentPrice=${currentPrice} (${sortedDays[0][0]}), prevClose=${prevClose} (${sortedDays[1][0]})`);
+      } else if (sortedDays.length === 1) {
+        currentPrice = sortedDays[0][1].lastClose;
+        console.log(`[Yahoo Finance] ${symbol}: Only one trading day found - currentPrice=${currentPrice} (${sortedDays[0][0]})`);
       }
     }
     
-    // Fallback to API values for non-Korean indices or if chart calculation failed
+    // Fallback to API values if chart calculation failed
+    if (!currentPrice) {
+      currentPrice = meta?.regularMarketPrice;
+    }
     if (!prevClose) {
       prevClose = meta?.regularMarketPreviousClose || meta?.previousClose;
     }
+    
+    if (!currentPrice) return null;
 
-    console.log(`[Yahoo Finance] ${symbol}: price=${price}, prevClose=${prevClose}, regularMarketPreviousClose=${meta?.regularMarketPreviousClose}, chartPreviousClose=${meta?.chartPreviousClose}`);
+    console.log(`[Yahoo Finance] ${symbol}: price=${currentPrice}, prevClose=${prevClose}, regularMarketPreviousClose=${meta?.regularMarketPreviousClose}`);
 
     const isPercentage = symbol === '%5ETNX' || symbol === '^TNX' || symbol === '^IRX';
     const change = prevClose
       ? isPercentage
-        ? price - prevClose
-        : ((price - prevClose) / prevClose) * 100
+        ? currentPrice - prevClose
+        : ((currentPrice - prevClose) / prevClose) * 100
       : 0;
 
     const chartData: { time: string; price: number }[] = [];
@@ -224,7 +235,7 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
     }
 
     return {
-      price,
+      price: currentPrice,
       change: parseFloat(change.toFixed(2)),
       previousClose: prevClose,
       chartData: chartData.length > 0 ? chartData : undefined
