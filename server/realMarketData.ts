@@ -132,9 +132,12 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
 
     const meta = result.meta;
     const price = meta?.regularMarketPrice;
-    const prevClose = meta?.chartPreviousClose || meta?.previousClose;
+    // Use regularMarketPreviousClose for actual previous trading day close (not chartPreviousClose which is 5 days ago)
+    const prevClose = meta?.regularMarketPreviousClose || meta?.previousClose;
 
     if (!price) return null;
+
+    console.log(`[Yahoo Finance] ${symbol}: price=${price}, prevClose=${prevClose}, regularMarketPreviousClose=${meta?.regularMarketPreviousClose}, chartPreviousClose=${meta?.chartPreviousClose}`);
 
     const isPercentage = symbol === '%5ETNX' || symbol === '^TNX' || symbol === '^IRX';
     const change = prevClose
