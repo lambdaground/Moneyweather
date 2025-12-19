@@ -257,7 +257,7 @@ let previousDieselPrice: number | null = null;
 
 async function fetchKoreanFuelPrices(): Promise<Record<string, { price: number; change: number } | null>> {
   try {
-    const apiKey = process.env.OPINET_API_KEY || 'DEMO_KEY';
+    const apiKey = process.env.VITE_OPINET_API_KEY || 'DEMO_KEY';
     const response = await fetchWithTimeout(
       `https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=${apiKey}`,
       8000
@@ -307,7 +307,7 @@ let previousRealEstatePrice: number | null = null;
 
 async function fetchRealEstateIndex(): Promise<{ price: number; change: number } | null> {
   try {
-    const apiKey = process.env.REB_API_KEY;
+    const apiKey = process.env.VITE_REB_API_KEY;
     if (!apiKey) {
       console.log('REB API key not configured');
       return null;
@@ -408,7 +408,7 @@ let lastFetch: number = 0;
 const FETCH_INTERVAL = 86400000; // 1일(밀리초)
 
 async function fetchBokBaseRate(): Promise<{ price: number; change: number } | null> {
-  const apiKey = process.env.ECOS_API_KEY;
+  const apiKey = process.env.VITE_ECOS_API_KEY;
 
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for BOK rate');
@@ -498,7 +498,7 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
 
 // 국고채 금리 조회 (3년물/10년물)
 async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ price: number; change: number } | null> {
-  const apiKey = process.env.ECOS_API_KEY;
+  const apiKey = process.env.VITE_ECOS_API_KEY;
 
   if (!apiKey) {
     console.log(`ECOS API key not configured, using mock data for ${name}`);
@@ -557,7 +557,7 @@ async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ pr
 
 // 소비자물가지수(CPI) 조회
 async function fetchCPI(): Promise<{ price: number; change: number } | null> {
-  const apiKey = process.env.ECOS_API_KEY;
+  const apiKey = process.env.VITE_ECOS_API_KEY;
 
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for CPI');
@@ -607,7 +607,7 @@ async function fetchCPI(): Promise<{ price: number; change: number } | null> {
 
 // 생산자물가지수(PPI) 조회
 async function fetchPPI(): Promise<{ price: number; change: number } | null> {
-  const apiKey = process.env.ECOS_API_KEY;
+  const apiKey = process.env.VITE_ECOS_API_KEY;
 
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for PPI');
@@ -657,7 +657,7 @@ async function fetchPPI(): Promise<{ price: number; change: number } | null> {
 
 // 소비자심리지수(CCSI) 조회
 async function fetchCCSI(): Promise<{ price: number; change: number } | null> {
-  const apiKey = process.env.ECOS_API_KEY;
+  const apiKey = process.env.VITE_ECOS_API_KEY;
 
   if (!apiKey) {
     console.log('ECOS API key not configured, using mock data for CCSI');
