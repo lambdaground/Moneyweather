@@ -785,6 +785,8 @@ interface AssetConfig {
   formatSellPrice?: (price: number) => string;
   messages: Record<WeatherStatus, string>;
   advice: string;
+  source?: string;
+  changeTimeBasis?: string;
 }
 
 const assetConfigs: Record<AssetType, AssetConfig> = {
@@ -800,6 +802,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '환율이 요동치고 있어요!',
     },
     advice: '전일 마감 환율(종가) 기준이에요. 실시간 환율과 다를 수 있어요. 환율이 높을 땐 수출 기업 주식이 좋을 수 있어요! 반대로 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
+    source: 'ExchangeRate-API',
+    changeTimeBasis: '실시간',
   },
   jpykrw: {
     name: '일본 엔화',
@@ -813,6 +817,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '엔화가 급변하고 있어요!',
     },
     advice: '엔화가 저렴할 때 일본 여행이나 일본 상품 구매를 고려해보세요.',
+    source: 'ExchangeRate-API',
+    changeTimeBasis: '실시간',
   },
   cnykrw: {
     name: '중국 위안화',
@@ -826,6 +832,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '위안화가 급변하고 있어요!',
     },
     advice: '중국 수출입 기업이라면 위안화 움직임을 주시하세요.',
+    source: 'ExchangeRate-API',
+    changeTimeBasis: '실시간',
   },
   eurkrw: {
     name: '유로화',
@@ -839,6 +847,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '유로가 급변하고 있어요!',
     },
     advice: '유럽 여행이나 유럽 상품 구매를 계획 중이라면 환율을 체크하세요.',
+    source: 'ExchangeRate-API',
+    changeTimeBasis: '실시간',
   },
   kospi: {
     name: '코스피',
@@ -852,6 +862,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '코스피가 요동쳐요! 롤러코스터 주의보!',
     },
     advice: '주식 시장이 하락할 때는 좋은 기업을 싸게 살 기회일 수 있어요. 하지만 무리한 투자는 금물!',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   kosdaq: {
     name: '코스닥',
@@ -865,6 +877,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '코스닥이 요동쳐요! 변동성 주의!',
     },
     advice: '코스닥은 중소기업 중심이라 변동성이 커요. 신중하게 투자하세요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   nasdaq: {
     name: '나스닥',
@@ -878,6 +892,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '나스닥이 요동쳐요! 기술주 주의보!',
     },
     advice: '나스닥은 애플, 구글, 마이크로소프트 등 미국 기술주 중심 지수예요. 변동성이 크지만 성장 잠재력도 높아요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   sp500: {
     name: 'S&P 500',
@@ -891,6 +907,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '미국 시장이 요동쳐요!',
     },
     advice: 'S&P 500은 미국 대형주 500개 기업의 지수예요. 미국 경제의 전반적인 상태를 보여줘요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   gold: {
     name: '금',
@@ -915,6 +933,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '금값이 크게 움직이고 있어요!',
     },
     advice: '금은 경제가 불안할 때 가치가 오르는 안전자산이에요. 포트폴리오의 10~15%를 금으로 가져가면 안정적이에요. 한 돈은 3.75g이에요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   silver: {
     name: '은',
@@ -939,6 +959,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '은값이 크게 움직이고 있어요!',
     },
     advice: '은은 금보다 변동성이 크지만, 산업용으로도 많이 쓰여서 수요가 꾸준해요. 한 돈은 3.75g이에요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   gasoline: {
     name: '휘발유',
@@ -952,6 +974,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '유가가 급변하고 있어요!',
     },
     advice: '기름값이 오를 때는 연비 좋은 운전 습관을 들이세요. 급출발, 급가속을 피하면 연비가 10%까지 좋아져요!',
+    source: '오피넷',
+    changeTimeBasis: '전일 대비',
   },
   diesel: {
     name: '경유',
@@ -965,6 +989,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '경유 가격이 급변하고 있어요!',
     },
     advice: '경유차는 장거리 운전에 유리해요. 출퇴근 거리가 길다면 경유차가 유지비를 절약할 수 있어요.',
+    source: '오피넷',
+    changeTimeBasis: '전일 대비',
   },
   kbrealestate: {
     name: '강남 아파트',
@@ -981,6 +1007,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '강남 집값이 크게 움직이고 있어요!',
     },
     advice: '강남 30평 아파트 평균 시세예요. 서울 아파트 시장의 바로미터로, 전체 부동산 시장의 방향을 가늠할 수 있어요. 금리 인상기에는 집값이 조정되는 경향이 있어요.',
+    source: '부동산통계정보시스템',
+    changeTimeBasis: '전주 대비',
   },
   bitcoin: {
     name: '비트코인',
@@ -1024,6 +1052,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '금리가 급변하고 있어요!',
     },
     advice: '금리가 높을 때는 예금과 적금이 유리해요. 금리가 낮을 때는 대출 받기 좋은 시기예요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   bonds2y: {
     name: '미국 2년물 국채',
@@ -1037,6 +1067,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '단기 금리가 급변하고 있어요!',
     },
     advice: '2년물 국채 금리는 연준의 금리 정책 기대를 반영해요. 장단기 금리 차이도 중요한 지표예요.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
   bokrate: {
     name: '한국 기준금리',
@@ -1055,6 +1087,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '기준금리가 크게 변동했어요!',
     },
     advice: '한국은행 기준금리는 대출금리와 예금금리에 영향을 줘요. 금리가 오르면 대출 이자가 늘어나고, 예금 이자도 올라요.',
+    source: 'ECOS',
+    changeTimeBasis: '이전 발표',
   },
   krbond3y: {
     name: '국고채 3년',
@@ -1068,6 +1102,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '3년물 금리가 급변하고 있어요!',
     },
     advice: '국고채 3년물은 기업들이 돈을 빌릴 때(회사채) 기준이 되는 금리예요. 단기~중기 경제 상황을 반영해요.',
+    source: 'ECOS',
+    changeTimeBasis: '전일 대비',
   },
   krbond10y: {
     name: '국고채 10년',
@@ -1081,6 +1117,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '10년물 금리가 급변하고 있어요!',
     },
     advice: '국고채 10년물은 장기적인 경제 성장 전망을 보여줘요. 주택담보대출 금리와도 연관이 있어요.',
+    source: 'ECOS',
+    changeTimeBasis: '전일 대비',
   },
   yieldspread: {
     name: '장단기 금리차',
@@ -1100,6 +1138,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '금리 역전! 경기 침체 신호!',
     },
     advice: '10년물 금리 - 3년물 금리 차이예요. 이 차이가 마이너스가 되면(역전되면) 경기 침체가 올 신호라고 해석해요. 아주 고급진 지표랍니다!',
+    source: '계산값',
+    changeTimeBasis: '전일 대비',
   },
   cpi: {
     name: '소비자물가',
@@ -1117,6 +1157,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '물가가 급등하고 있어요!',
     },
     advice: '"내 월급 빼고 다 오른다"를 숫자로 확인하는 지표예요. 마트에서 사는 물건 가격의 변동을 나타내는 인플레이션 지표입니다.',
+    source: 'ECOS',
+    changeTimeBasis: '전월 대비',
   },
   ppi: {
     name: '생산자물가',
@@ -1134,6 +1176,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '생산 비용이 급등하고 있어요!',
     },
     advice: '공장에서 물건을 만들 때 드는 비용이에요. PPI가 오르면 나중에 소비자물가(CPI)도 따라 오를 수 있어요.',
+    source: 'ECOS',
+    changeTimeBasis: '전월 대비',
   },
   ccsi: {
     name: '소비자심리',
@@ -1152,6 +1196,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '소비자 심리가 얼어붙었어요!',
     },
     advice: '사람들의 마음(심리)을 숫자로 나타낸 거예요. 100 이상이면 "경기가 좋아질 것 같아 지갑을 열자!", 100 미만이면 "먹고살기 힘들어 지갑 닫자"예요. 주식이나 부동산 시장의 선행 지표로 쓰여요.',
+    source: 'ECOS',
+    changeTimeBasis: '전월 대비',
   },
   dowjones: {
     name: '다우존스',
@@ -1165,6 +1211,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
       thunder: '다우존스가 크게 움직이고 있습니다!',
     },
     advice: '다우존스 지수는 미국 대표 30개 우량 기업의 주가 평균으로, 미국 경제의 전반적인 건전성을 나타내는 지표입니다.',
+    source: 'Yahoo Finance',
+    changeTimeBasis: '전일 종가',
   },
 };
 
