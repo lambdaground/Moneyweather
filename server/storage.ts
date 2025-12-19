@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type AssetData, type MarketDataResponse } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { fetchRealMarketData } from "./realMarketData";
+import { fetchRealMarketData } from "./realMarketData.js";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
