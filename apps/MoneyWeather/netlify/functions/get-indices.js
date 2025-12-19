@@ -55,14 +55,14 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const [kospi, kosdaq, nasdaq, sp500, dowjones, bonds10y, bonds2y] = await Promise.all([
+    const [kospi, kosdaq, nasdaq, sp500, dowjones, bonds10y, bonds5y] = await Promise.all([
       fetchYahooQuote('^KS11'),
       fetchYahooQuote('^KQ11'),
       fetchYahooQuote('^IXIC'),
       fetchYahooQuote('^GSPC'),
       fetchYahooQuote('^DJI'),
       fetchYahooQuote('^TNX'),
-      fetchYahooQuote('^IRX')
+      fetchYahooQuote('^FVX')
     ]);
 
     const result = {
@@ -101,10 +101,10 @@ exports.handler = async (event, context) => {
         change: parseFloat(bonds10y.changePoints.toFixed(2)),
         prevClose: parseFloat(bonds10y.prevClose.toFixed(2))
       } : null,
-      bonds2y: bonds2y ? {
-        yield: parseFloat((bonds2y.price / 10).toFixed(2)),
-        change: parseFloat((bonds2y.changePoints / 10).toFixed(2)),
-        prevClose: parseFloat((bonds2y.prevClose / 10).toFixed(2))
+      bonds5y: bonds5y ? {
+        yield: parseFloat(bonds5y.price.toFixed(2)),
+        change: parseFloat(bonds5y.changePoints.toFixed(2)),
+        prevClose: parseFloat(bonds5y.prevClose.toFixed(2))
       } : null,
       timestamp: new Date().toISOString()
     };

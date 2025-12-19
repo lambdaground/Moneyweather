@@ -9,56 +9,101 @@ exports.handler = async (event, context) => {
     return { statusCode: 200, headers, body: '' };
   }
 
-  try {
-    const response = await fetch('https://open.er-api.com/v6/latest/USD');
-    const data = await response.json();
+  function getPreviousBusinessDay(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    if (day === 0) d.setDate(d.getDate() - 2);
+    else if (day === 1) d.setDate(d.getDate() - 3);
+    else d.setDate(d.getDate() - 1);
+    return d;
+  }
 
-    if (data.result !== 'success') {
-      throw new Error('API returned error');
+  function formatDate(date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  try {
+    const today = new Date();
+    const prevDay = getPreviousBusinessDay(today);
+    const prevStr = formatDate(prevDay);
+
+    const [todayResponse, prevResponse] = await Promise.all([
+      fetch('https://api.exchangerate.host/latest?base=USD&symbols=KRW,JPY,CNY,EUR'),
+      fetch(`https://api.exchangerate.host/${prevStr}?base=USD&symbols=KRW,JPY,CNY,EUR`)
+    ]);
+
+    let todayRates = null;
+    let prevRates = null;
+    let source = 'exchangerate.host';
+
+    const todayData = await todayResponse.json();
+    const prevData = await prevResponse.json();
+
+    if (todayData.success !== false && todayData.rates) {
+      todayRates = todayData.rates;
     }
 
-    const rates = data.rates;
-    const krwRate = rates.KRW;
-    const jpyRate = rates.JPY;
-    const cnyRate = rates.CNY;
-    const eurRate = rates.EUR;
+    if (prevData.success !== false && prevData.rates) {
+      prevRates = prevData.rates;
+    }
 
-    const usdKrw = krwRate;
-    const jpyKrw = krwRate / jpyRate * 100;
-    const cnyKrw = krwRate / cnyRate;
-    const eurKrw = krwRate / eurRate;
+    if (!todayRates) {
+      const fallbackResponse = await fetch('https://open.er-api.com/v6/latest/USD');
+      const fallbackData = await fallbackResponse.json();
+      
+      if (fallbackData.result === 'success') {
+        todayRates = fallbackData.rates;
+        source = 'exchangerate-api-fallback';
+        prevRates = null;
+      } else {
+        throw new Error('All exchange rate APIs failed');
+      }
+    }
 
-    const prevUsdKrw = 1435.50;
-    const prevJpyKrw = 945.80;
-    const prevCnyKrw = 196.50;
-    const prevEurKrw = 1510.20;
+    const usdKrw = todayRates.KRW;
+    const jpyKrw = todayRates.KRW / todayRates.JPY * 100;
+    const cnyKrw = todayRates.KRW / todayRates.CNY;
+    const eurKrw = todayRates.KRW / todayRates.EUR;
+
+    let prevUsdKrw = null, prevJpyKrw = null, prevCnyKrw = null, prevEurKrw = null;
+    
+    if (prevRates && prevRates.KRW && prevRates.JPY && prevRates.CNY && prevRates.EUR) {
+      prevUsdKrw = prevRates.KRW;
+      prevJpyKrw = prevRates.KRW / prevRates.JPY * 100;
+      prevCnyKrw = prevRates.KRW / prevRates.CNY;
+      prevEurKrw = prevRates.KRW / prevRates.EUR;
+    }
+
+    function calcChange(current, prev) {
+      if (!prev) return { change: null, changePoints: null, prevClose: null };
+      const changePoints = current - prev;
+      const change = (changePoints / prev) * 100;
+      return {
+        change: parseFloat(change.toFixed(2)),
+        changePoints: parseFloat(changePoints.toFixed(2)),
+        prevClose: parseFloat(prev.toFixed(2))
+      };
+    }
 
     const result = {
-      usd: {
+      usdkrw: {
         rate: parseFloat(usdKrw.toFixed(2)),
-        change: parseFloat(((usdKrw - prevUsdKrw) / prevUsdKrw * 100).toFixed(2)),
-        changePoints: parseFloat((usdKrw - prevUsdKrw).toFixed(2)),
-        prevClose: prevUsdKrw
+        ...calcChange(usdKrw, prevUsdKrw)
       },
-      jpy: {
+      jpykrw: {
         rate: parseFloat(jpyKrw.toFixed(2)),
-        change: parseFloat(((jpyKrw - prevJpyKrw) / prevJpyKrw * 100).toFixed(2)),
-        changePoints: parseFloat((jpyKrw - prevJpyKrw).toFixed(2)),
-        prevClose: prevJpyKrw
+        ...calcChange(jpyKrw, prevJpyKrw)
       },
-      cny: {
+      cnykrw: {
         rate: parseFloat(cnyKrw.toFixed(2)),
-        change: parseFloat(((cnyKrw - prevCnyKrw) / prevCnyKrw * 100).toFixed(2)),
-        changePoints: parseFloat((cnyKrw - prevCnyKrw).toFixed(2)),
-        prevClose: prevCnyKrw
+        ...calcChange(cnyKrw, prevCnyKrw)
       },
-      eur: {
+      eurkrw: {
         rate: parseFloat(eurKrw.toFixed(2)),
-        change: parseFloat(((eurKrw - prevEurKrw) / prevEurKrw * 100).toFixed(2)),
-        changePoints: parseFloat((eurKrw - prevEurKrw).toFixed(2)),
-        prevClose: prevEurKrw
+        ...calcChange(eurKrw, prevEurKrw)
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      source: source
     };
 
     return {

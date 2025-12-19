@@ -314,15 +314,26 @@ async function fetchFearGreedData() {
 function parseExchangeData(data) {
   const assets = [];
   
+  function formatChange(change, changePoints) {
+    if (change === null || change === undefined) {
+      return { change: null, changePointsDisplay: '--' };
+    }
+    return {
+      change: change,
+      changePointsDisplay: `${change >= 0 ? '+' : ''}${changePoints?.toFixed(2) || '0.00'}원`
+    };
+  }
+  
   if (data.usdkrw) {
+    const changeInfo = formatChange(data.usdkrw.change, data.usdkrw.changePoints);
     assets.push(createAsset({
       id: 'usdkrw',
-      name: '미국 달러 (전일 종가)',
+      name: '미국 달러',
       category: 'currency',
       price: data.usdkrw.rate,
-      change: data.usdkrw.change || 0,
+      change: changeInfo.change,
       priceDisplay: `${Math.round(data.usdkrw.rate).toLocaleString()} KRW`,
-      changePointsDisplay: `${data.usdkrw.change >= 0 ? '+' : ''}${data.usdkrw.changePoints?.toFixed(2) || '0.00'}원`,
+      changePointsDisplay: changeInfo.changePointsDisplay,
       status: getUsdStatus(data.usdkrw.rate),
       message: getUsdMessage(data.usdkrw.rate),
       advice: '달러 환율이 오르면 수입 물가가 올라가고, 해외여행 비용도 비싸져요. 반대로 수출 기업은 유리해요.'
@@ -330,14 +341,15 @@ function parseExchangeData(data) {
   }
   
   if (data.jpykrw) {
+    const changeInfo = formatChange(data.jpykrw.change, data.jpykrw.changePoints);
     assets.push(createAsset({
       id: 'jpykrw',
       name: '일본 엔화',
       category: 'currency',
       price: data.jpykrw.rate,
-      change: data.jpykrw.change || 0,
+      change: changeInfo.change,
       priceDisplay: `${data.jpykrw.rate.toFixed(2)} /100엔`,
-      changePointsDisplay: `${data.jpykrw.change >= 0 ? '+' : ''}${data.jpykrw.changePoints?.toFixed(2) || '0.00'}원`,
+      changePointsDisplay: changeInfo.changePointsDisplay,
       status: getJpyStatus(data.jpykrw.rate),
       message: getJpyMessage(data.jpykrw.rate),
       advice: '일본 여행을 계획 중이라면 엔화가 쌀 때 환전해두세요!'
@@ -345,14 +357,15 @@ function parseExchangeData(data) {
   }
   
   if (data.cnykrw) {
+    const changeInfo = formatChange(data.cnykrw.change, data.cnykrw.changePoints);
     assets.push(createAsset({
       id: 'cnykrw',
       name: '중국 위안화',
       category: 'currency',
       price: data.cnykrw.rate,
-      change: data.cnykrw.change || 0,
+      change: changeInfo.change,
       priceDisplay: `${data.cnykrw.rate.toFixed(2)} KRW`,
-      changePointsDisplay: `${data.cnykrw.change >= 0 ? '+' : ''}${data.cnykrw.changePoints?.toFixed(2) || '0.00'}원`,
+      changePointsDisplay: changeInfo.changePointsDisplay,
       status: getCnyStatus(data.cnykrw.rate),
       message: getCnyMessage(data.cnykrw.rate),
       advice: '중국은 우리나라 최대 무역국이에요. 위안화 환율은 수출입 기업에 큰 영향을 줘요.'
@@ -360,14 +373,15 @@ function parseExchangeData(data) {
   }
   
   if (data.eurkrw) {
+    const changeInfo = formatChange(data.eurkrw.change, data.eurkrw.changePoints);
     assets.push(createAsset({
       id: 'eurkrw',
       name: '유로화',
       category: 'currency',
       price: data.eurkrw.rate,
-      change: data.eurkrw.change || 0,
+      change: changeInfo.change,
       priceDisplay: `${Math.round(data.eurkrw.rate).toLocaleString()} KRW`,
-      changePointsDisplay: `${data.eurkrw.change >= 0 ? '+' : ''}${data.eurkrw.changePoints?.toFixed(2) || '0.00'}원`,
+      changePointsDisplay: changeInfo.changePointsDisplay,
       status: getEurStatus(data.eurkrw.rate),
       message: getEurMessage(data.eurkrw.rate),
       advice: '유럽 여행이나 유럽 제품 구매를 계획 중이라면 유로 환율을 주시하세요!'
@@ -433,15 +447,27 @@ function parseMetalData(data) {
 function parseOilData(data) {
   const assets = [];
   
+  function formatOilChange(change, changePoints) {
+    if (change === null || change === undefined) {
+      return { change: null, changePointsDisplay: '--' };
+    }
+    const sign = changePoints >= 0 ? '+' : '';
+    return {
+      change: change,
+      changePointsDisplay: `${sign}${changePoints?.toFixed(1) || '0'}원`
+    };
+  }
+  
   if (data.gasoline) {
+    const changeInfo = formatOilChange(data.gasoline.change, data.gasoline.changePoints);
     assets.push(createAsset({
       id: 'gasoline',
       name: '휘발유',
       category: 'commodity',
       price: data.gasoline.price,
-      change: 0,
+      change: changeInfo.change,
       priceDisplay: `${Math.round(data.gasoline.price).toLocaleString()}원/L`,
-      changePointsDisplay: '+0원',
+      changePointsDisplay: changeInfo.changePointsDisplay,
       status: getGasolineStatus(data.gasoline.price),
       message: getGasolineMessage(data.gasoline.price),
       advice: '기름값이 오를 때는 연비 좋은 운전 습관을 들이세요. 급출발, 급가속을 피하면 연비가 10%까지 좋아져요!'
@@ -449,14 +475,15 @@ function parseOilData(data) {
   }
   
   if (data.diesel) {
+    const changeInfo = formatOilChange(data.diesel.change, data.diesel.changePoints);
     assets.push(createAsset({
       id: 'diesel',
       name: '경유',
       category: 'commodity',
       price: data.diesel.price,
-      change: 0,
+      change: changeInfo.change,
       priceDisplay: `${Math.round(data.diesel.price).toLocaleString()}원/L`,
-      changePointsDisplay: '+0원',
+      changePointsDisplay: changeInfo.changePointsDisplay,
       status: getDieselStatus(data.diesel.price),
       message: getDieselMessage(data.diesel.price),
       advice: '경유차는 장거리 운전에 유리해요. 출퇴근 거리가 길다면 경유차가 유지비를 절약할 수 있어요.'
@@ -744,18 +771,18 @@ function parseIndicesData(data) {
     }));
   }
   
-  if (data.bonds2y) {
+  if (data.bonds5y) {
     assets.push(createAsset({
-      id: 'bonds2y',
-      name: '미국 2년물 국채',
+      id: 'bonds5y',
+      name: '미국 5년물 국채',
       category: 'bonds',
-      price: data.bonds2y.yield,
-      change: data.bonds2y.change || 0,
-      priceDisplay: `${data.bonds2y.yield.toFixed(2)}%`,
-      changePointsDisplay: `${data.bonds2y.change >= 0 ? '+' : ''}${data.bonds2y.change.toFixed(2)}%p`,
-      status: getBondStatus(data.bonds2y.change),
-      message: getUsBond2yMessage(data.bonds2y.change),
-      advice: '2년물 국채 금리는 연준의 금리 정책 기대를 반영해요. 단기 금리 방향을 알 수 있어요.'
+      price: data.bonds5y.yield,
+      change: data.bonds5y.change || 0,
+      priceDisplay: `${data.bonds5y.yield.toFixed(2)}%`,
+      changePointsDisplay: `${data.bonds5y.change >= 0 ? '+' : ''}${data.bonds5y.change.toFixed(2)}%p`,
+      status: getBondStatus(data.bonds5y.change),
+      message: getUsBond5yMessage(data.bonds5y.change),
+      advice: '5년물 국채 금리는 중기 금리 방향을 보여줘요. 주택담보대출 금리와 연관이 깊어요.'
     }));
   }
   
@@ -832,10 +859,10 @@ function getUsBond10yMessage(change) {
   return '10년물 금리가 안정적이에요.';
 }
 
-function getUsBond2yMessage(change) {
-  if (change > 0.1) return '2년물 금리가 올랐어요.';
-  if (change < -0.1) return '2년물 금리가 내렸어요.';
-  return '2년물 금리가 안정적이에요.';
+function getUsBond5yMessage(change) {
+  if (change > 0.1) return '5년물 금리가 올랐어요.';
+  if (change < -0.1) return '5년물 금리가 내렸어요.';
+  return '5년물 금리가 안정적이에요.';
 }
 
 function getFearGreedMessage(value) {
@@ -1290,10 +1317,10 @@ function getIndicesMockData() {
       advice: '금리가 높을 때는 예금과 적금이 유리해요.'
     }),
     createAsset({
-      id: 'bonds2y', name: '미국 2년물 국채', category: 'bonds',
-      price: 4.15, change: -0.01, priceDisplay: '4.15%', changePointsDisplay: '-0.01%p',
-      status: 'cloudy', message: '단기 금리가 안정적이에요.',
-      advice: '2년물 국채 금리는 연준의 금리 정책 기대를 반영해요.'
+      id: 'bonds5y', name: '미국 5년물 국채', category: 'bonds',
+      price: 4.20, change: -0.01, priceDisplay: '4.20%', changePointsDisplay: '-0.01%p',
+      status: 'cloudy', message: '중기 금리가 안정적이에요.',
+      advice: '5년물 국채 금리는 중기 금리 방향을 보여줘요.'
     })
   ];
 }
@@ -1373,8 +1400,10 @@ function createCardElement(asset) {
   card.dataset.testid = `card-asset-${asset.id}`;
   card.draggable = isEditMode;
   
-  const isPositive = asset.change >= 0;
-  const trendIcon = isPositive ? '↑' : '↓';
+  const hasChange = asset.change !== null && asset.change !== undefined;
+  const isPositive = hasChange ? asset.change >= 0 : true;
+  const trendIcon = hasChange ? (isPositive ? '↑' : '↓') : '--';
+  const changeDisplay = hasChange ? `${isPositive ? '+' : ''}${asset.change}%` : '--';
   
   let buySellHtml = '';
   if (asset.buyPriceDisplay && asset.sellPriceDisplay) {
@@ -1419,10 +1448,10 @@ function createCardElement(asset) {
     </div>
     <p class="card-message" data-testid="text-asset-message-${asset.id}">${asset.message}</p>
     <div class="card-badges">
-      <span class="badge ${isPositive ? 'positive' : 'negative'}" data-testid="badge-change-${asset.id}">
-        ${trendIcon} ${isPositive ? '+' : ''}${asset.change}%
+      <span class="badge ${hasChange ? (isPositive ? 'positive' : 'negative') : 'neutral'}" data-testid="badge-change-${asset.id}">
+        ${trendIcon} ${changeDisplay}
       </span>
-      <span class="badge badge-outline ${isPositive ? 'positive' : 'negative'}" data-testid="badge-change-points-${asset.id}">
+      <span class="badge badge-outline ${hasChange ? (isPositive ? 'positive' : 'negative') : 'neutral'}" data-testid="badge-change-points-${asset.id}">
         ${asset.changePointsDisplay}
       </span>
     </div>
@@ -1673,14 +1702,16 @@ function openModal(asset) {
   elements.modalMessage.textContent = asset.message;
   elements.modalAdvice.textContent = asset.advice;
   
-  const isPositive = asset.change >= 0;
-  const trendIcon = isPositive ? '↑' : '↓';
+  const hasChange = asset.change !== null && asset.change !== undefined;
+  const isPositive = hasChange ? asset.change >= 0 : true;
+  const trendIcon = hasChange ? (isPositive ? '↑' : '↓') : '--';
+  const changeDisplay = hasChange ? `${isPositive ? '+' : ''}${asset.change}%` : '--';
   
-  elements.modalChangeBadge.textContent = `${trendIcon} ${isPositive ? '+' : ''}${asset.change}%`;
-  elements.modalChangeBadge.className = `badge ${isPositive ? 'positive' : 'negative'}`;
+  elements.modalChangeBadge.textContent = `${trendIcon} ${changeDisplay}`;
+  elements.modalChangeBadge.className = `badge ${hasChange ? (isPositive ? 'positive' : 'negative') : 'neutral'}`;
   
   elements.modalChangePointsBadge.textContent = asset.changePointsDisplay;
-  elements.modalChangePointsBadge.className = `badge badge-outline ${isPositive ? 'positive' : 'negative'}`;
+  elements.modalChangePointsBadge.className = `badge badge-outline ${hasChange ? (isPositive ? 'positive' : 'negative') : 'neutral'}`;
   
   // Buy/Sell prices
   if (asset.buyPriceDisplay && asset.sellPriceDisplay) {

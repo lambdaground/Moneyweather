@@ -520,6 +520,11 @@ body {
   color: var(--red-color);
 }
 
+.badge.neutral {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+}
+
 .badge-outline {
   background-color: transparent;
   border: 1px solid;
@@ -533,6 +538,11 @@ body {
 .badge-outline.negative {
   border-color: var(--red-border);
   color: var(--red-color);
+}
+
+.badge-outline.neutral {
+  border-color: var(--border);
+  color: var(--muted-foreground);
 }
 
 .footer {
