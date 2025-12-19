@@ -46,6 +46,8 @@ export interface AssetData {
   message: string;
   advice: string;
   chartData?: { time: string; price: number }[];
+  source?: string;
+  changeTimeBasis?: string;
 }
 
 export interface MarketDataResponse {
@@ -83,6 +85,8 @@ export const assetDataSchema = z.object({
     time: z.string(),
     price: z.number(),
   })).optional(),
+  source: z.string().optional(),
+  changeTimeBasis: z.string().optional(),
 });
 
 export const marketDataResponseSchema = z.object({
