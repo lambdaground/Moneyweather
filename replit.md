@@ -48,10 +48,10 @@ A mobile-first financial dashboard that translates complex economic data into we
 ### Data Sources (Real APIs)
 | Asset | API Source | Endpoint |
 |-------|-----------|----------|
-| USD/KRW | ExchangeRate-API | v4/latest/USD (free, no key) |
-| JPY/KRW | ExchangeRate-API | Calculated from USD rates |
-| CNY/KRW | ExchangeRate-API | Calculated from USD rates |
-| EUR/KRW | ExchangeRate-API | Calculated from USD rates |
+| USD/KRW | Yahoo Finance | KRW=X (previousClose 기반 등락률) |
+| JPY/KRW | Yahoo Finance | JPYKRW=X (1엔당 → 100엔당 변환) |
+| CNY/KRW | Yahoo Finance | CNYKRW=X |
+| EUR/KRW | Yahoo Finance | EURKRW=X |
 | Fear & Greed | Alternative.me | /fng/?limit=2 (free, no key) |
 | KOSPI | Yahoo Finance | ^KS11 chart data |
 | KOSDAQ | Yahoo Finance | ^KQ11 chart data |

@@ -712,7 +712,10 @@ async function fetchCCSI(): Promise<{ price: number; change: number } | null> {
 
 export async function fetchAllMarketData(): Promise<RawMarketData> {
   const [
-    exchangeRates,
+    usdkrwData,
+    jpykrwData,
+    cnykrwData,
+    eurkrwData,
     dowjones,
     kospi,
     kosdaq,
@@ -733,7 +736,10 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     ppi,
     ccsi,
   ] = await Promise.all([
-    fetchExchangeRates(),
+    fetchYahooFinance('KRW=X'),
+    fetchYahooFinance('JPYKRW=X'),
+    fetchYahooFinance('CNYKRW=X'),
+    fetchYahooFinance('EURKRW=X'),
     fetchYahooFinance('^DJI'),
     fetchYahooFinance('^KS11'),
     fetchYahooFinance('^KQ11'),
@@ -755,6 +761,11 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchCCSI(),
   ]);
 
+  // Update cached USD/KRW for other calculations
+  if (usdkrwData?.price) {
+    cachedUsdKrw = usdkrwData.price;
+  }
+
   // 장단기 금리차 계산 (10년물 - 3년물)
   let yieldspread: { price: number; change: number } | null = null;
   if (krbond10y && krbond3y) {
@@ -766,10 +777,10 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
   }
 
   return {
-    usdkrw: exchangeRates?.usdkrw ?? null,
-    jpykrw: exchangeRates?.jpykrw ?? null,
-    cnykrw: exchangeRates?.cnykrw ?? null,
-    eurkrw: exchangeRates?.eurkrw ?? null,
+    usdkrw: usdkrwData,
+    jpykrw: jpykrwData,
+    cnykrw: cnykrwData,
+    eurkrw: eurkrwData,
     dowjones,
     kospi,
     kosdaq,
@@ -1412,14 +1423,19 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
     let priceForDisplay = data.price;
     let chartData = (data as any).chartData;
 
+    let previousCloseForCalc = (data as any).previousClose;
+
     if (id === 'jpykrw') {
       priceForDisplay = data.price * 100;
+      if (previousCloseForCalc) {
+        previousCloseForCalc = previousCloseForCalc * 100;
+      }
       if (chartData) {
         chartData = chartData.map((d: { time: string; price: number }) => ({ ...d, price: d.price * 100 }));
       }
     }
 
-    const { points, display } = formatChangePoints(id, priceForDisplay, data.change, (data as any).previousClose);
+    const { points, display } = formatChangePoints(id, priceForDisplay, data.change, previousCloseForCalc);
     const status = config.getStatus(priceForDisplay, data.change);
 
     const assetData: AssetData = {
