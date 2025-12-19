@@ -132,10 +132,72 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
 
     const meta = result.meta;
     const price = meta?.regularMarketPrice;
-    // Use regularMarketPreviousClose for actual previous trading day close (not chartPreviousClose which is 5 days ago)
-    const prevClose = meta?.regularMarketPreviousClose || meta?.previousClose;
-
+    
     if (!price) return null;
+
+    const timestamps = result.timestamp;
+    const quotes = result.indicators?.quote?.[0];
+    
+    // For Korean indices (KOSPI, KOSDAQ), calculate previous close from chart data
+    // because Yahoo Finance API returns incorrect previousClose values
+    const isKoreanIndex = symbol === '^KS11' || symbol === '^KQ11';
+    let prevClose: number | undefined;
+    
+    if (isKoreanIndex && timestamps && quotes?.close) {
+      // Get today's date in KST (Korea Standard Time, UTC+9)
+      const now = new Date();
+      const kstFormatter = new Intl.DateTimeFormat('en-CA', { 
+        timeZone: 'Asia/Seoul', 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      });
+      const todayKST = kstFormatter.format(now); // YYYY-MM-DD in KST
+      
+      // Find the last close price from the previous trading day
+      // Iterate from the end (most recent) to find the most recent previous day's last data point
+      let previousDayClose: number | undefined;
+      let previousDayDate: string | undefined;
+      
+      for (let i = timestamps.length - 1; i >= 0; i--) {
+        const closePrice = quotes.close[i];
+        if (closePrice !== null && closePrice !== undefined) {
+          // Convert Unix timestamp to KST date
+          const timestampDate = new Date(timestamps[i] * 1000);
+          const dateStr = kstFormatter.format(timestampDate);
+          
+          if (dateStr < todayKST) {
+            // This is from a previous day (before today in KST)
+            if (!previousDayDate) {
+              // First previous day found - this is the most recent previous day
+              previousDayDate = dateStr;
+            }
+            
+            if (dateStr === previousDayDate) {
+              // Same previous day - we want the LAST (latest) data point of this day
+              // Since we're iterating backwards, the first match is the latest
+              if (!previousDayClose) {
+                previousDayClose = closePrice;
+              }
+            } else if (dateStr < previousDayDate) {
+              // Found an even older day, stop
+              break;
+            }
+          }
+        }
+      }
+      
+      // Use the last close of the previous trading day
+      if (previousDayClose) {
+        prevClose = previousDayClose;
+        console.log(`[Yahoo Finance] ${symbol}: Calculated prevClose from chart data: ${prevClose} (from ${previousDayDate})`);
+      }
+    }
+    
+    // Fallback to API values for non-Korean indices or if chart calculation failed
+    if (!prevClose) {
+      prevClose = meta?.regularMarketPreviousClose || meta?.previousClose;
+    }
 
     console.log(`[Yahoo Finance] ${symbol}: price=${price}, prevClose=${prevClose}, regularMarketPreviousClose=${meta?.regularMarketPreviousClose}, chartPreviousClose=${meta?.chartPreviousClose}`);
 
@@ -147,8 +209,6 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
       : 0;
 
     const chartData: { time: string; price: number }[] = [];
-    const timestamps = result.timestamp;
-    const quotes = result.indicators?.quote?.[0];
 
     if (timestamps && quotes?.close) {
       for (let i = 0; i < timestamps.length; i++) {
