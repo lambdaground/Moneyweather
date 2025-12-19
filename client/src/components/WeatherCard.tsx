@@ -166,6 +166,14 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
           >
             {asset.changePointsDisplay}
           </Badge>
+          {asset.source && asset.changeTimeBasis && (
+            <span 
+              data-testid={`text-source-${asset.id}`}
+              className="text-xs text-muted-foreground"
+            >
+              {asset.source} · {asset.changeTimeBasis}
+            </span>
+          )}
         </div>
       </div>
     </Card>

@@ -26,6 +26,8 @@ export interface AssetData {
   message: string;
   advice: string;
   chartData?: { time: string; price: number }[];
+  source?: string;
+  changeTimeBasis?: string;
 }
 
 export interface MarketDataResponse {

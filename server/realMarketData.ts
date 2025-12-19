@@ -172,10 +172,10 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
   }
 }
 
-async function fetchCrypto(id: string): Promise<{ price: number; change: number } | null> {
+async function fetchCrypto(id: string): Promise<{ price: number; change: number; priceKrw: number } | null> {
   try {
     const response = await fetchWithTimeout(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`
+      `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=krw&include_24hr_change=true`
     );
     if (!response.ok) return null;
 
@@ -184,8 +184,9 @@ async function fetchCrypto(id: string): Promise<{ price: number; change: number 
     if (!asset) return null;
 
     return {
-      price: asset.usd,
-      change: parseFloat((asset.usd_24h_change || 0).toFixed(2))
+      price: asset.krw,
+      priceKrw: asset.krw,
+      change: parseFloat((asset.krw_24h_change || 0).toFixed(2))
     };
   } catch (error) {
     console.error(`Failed to fetch ${id}:`, error);
@@ -985,27 +986,31 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '비트코인',
     category: 'crypto',
     getStatus: (_, change) => getCryptoStatus(change),
-    formatPrice: (p) => `$${p.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+    formatPrice: (p) => `${Math.round(p).toLocaleString('ko-KR')}원`,
     messages: {
       sunny: '비트코인이 달리고 있어요!',
       rainy: '비트코인이 쉬어가는 중이에요.',
       cloudy: '비트코인이 조용하네요.',
       thunder: '롤러코스터 출발! 꽉 잡으세요!',
     },
-    advice: '비트코인은 변동성이 매우 커요. 잃어도 괜찮은 금액만 투자하고, 장기 관점으로 바라보세요.',
+    advice: '비트코인은 변동성이 매우 커요. 잃어도 괜찮은 금액만 투자하고, 장기 관점으로 바라보세요. (코인게코 기준, 24시간 변동률)',
+    source: '코인게코',
+    changeTimeBasis: '24시간',
   },
   ethereum: {
     name: '이더리움',
     category: 'crypto',
     getStatus: (_, change) => getCryptoStatus(change),
-    formatPrice: (p) => `$${p.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+    formatPrice: (p) => `${Math.round(p).toLocaleString('ko-KR')}원`,
     messages: {
       sunny: '이더리움이 달리고 있어요!',
       rainy: '이더리움이 쉬어가는 중이에요.',
       cloudy: '이더리움이 조용하네요.',
       thunder: '이더리움 롤러코스터!',
     },
-    advice: '이더리움은 스마트 컨트랙트 플랫폼이에요. NFT와 DeFi의 기반이 되는 중요한 코인이에요.',
+    advice: '이더리움은 스마트 컨트랙트 플랫폼이에요. NFT와 DeFi의 기반이 되는 중요한 코인이에요. (코인게코 기준, 24시간 변동률)',
+    source: '코인게코',
+    changeTimeBasis: '24시간',
   },
   bonds: {
     name: '미국 10년물 국채',
@@ -1276,6 +1281,8 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
         message: config.messages[status],
         advice: config.advice,
         chartData: undefined,
+        source: (config as any).source,
+        changeTimeBasis: (config as any).changeTimeBasis,
       };
 
       if (config.formatBuyPrice) {
@@ -1317,6 +1324,8 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       message: config.messages[status],
       advice: config.advice,
       chartData,
+      source: (config as any).source,
+      changeTimeBasis: (config as any).changeTimeBasis,
     };
 
     if (config.formatBuyPrice) {
