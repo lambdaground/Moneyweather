@@ -1,6 +1,6 @@
 import express from 'express';
 import { createServer } from 'http';
-import { registerRoutes } from '../server/routes';
+import { registerRoutes } from '../server/routes.js';
 
 const app = express();
 const server = createServer(app);
