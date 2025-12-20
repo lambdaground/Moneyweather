@@ -1,4 +1,4 @@
-import app, { setupApp } from "../server/index";
+import app, { setupApp } from "../server/index.js";
 
 // Vercel Serverless Function Handler
 export default async function handler(req: any, res: any) {
