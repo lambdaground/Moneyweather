@@ -1,22 +1,29 @@
 {
-  "include": ["src/**/*", "shared/**/*", "server/**/*", "api"],
+  "include": ["src/**/*", "shared/**/*", "server/**/*", "api/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
-    "module": "ESNext",
+
+    /* 1. Node.js 배포 환경에 맞게 모듈 설정 변경 (가장 중요) */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2020",
+
     "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "moduleResolution": "bundler",
     "baseUrl": ".",
+    
+    /* 2. Vite 타입 경로 수정 (vite/ -> vite/client) */
     "types": ["node", "vite/client"],
+    
     "paths": {
-      "@/*": ["./client/src/*"],
+      "@/*": ["./src/*"],
       "@shared/*": ["./shared/*"]
     }
   }
