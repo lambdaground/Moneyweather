@@ -1,4 +1,4 @@
-import type { AssetData, AssetType, WeatherStatus } from "@shared/schema";
+import type { AssetData, AssetType, WeatherStatus } from "../shared/schema";
 
 interface AssetConfig {
   name: string;
