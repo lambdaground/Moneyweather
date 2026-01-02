@@ -2,14 +2,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { runCronJob } from "./cron-job"; // ★ 방금 만든 파일 import
+import { runCronJob } from "./cron-job"; // ★ 이 파일이 있어야 합니다!
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
-  // 1. 일반 데이터 조회 (Supabase DB 읽기)
+  // 1. 일반 데이터 조회 (기존에 잘 되던 것)
   app.get("/api/market", async (req, res) => {
     try {
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
@@ -21,10 +21,10 @@ export async function registerRoutes(
     }
   });
 
-  // 2. ★ 중요: Cron 작업 엔드포인트 (Express가 직접 처리!)
+  // 2. ★ [누락된 부분] Cron 작업 주소 등록 ★
   app.get("/api/cron", async (req, res) => {
     try {
-      // 보안 체크: 수동 실행 키(?key=debug1234) 또는 Vercel Cron 헤더 확인
+      // 보안 체크 (수동 실행 키 or Vercel 헤더)
       const authHeader = req.headers.authorization || req.headers.Authorization;
       const { key } = req.query;
       const isManualRun = key === 'debug1234';
@@ -34,7 +34,10 @@ export async function registerRoutes(
       }
 
       console.log("🔄 Cron Job 요청 받음 (Express)");
-      const result = await runCronJob(isManualRun); // 실제 데이터 수집 실행
+      
+      // 실제 크론 로직 실행
+      const result = await runCronJob(isManualRun); 
+      
       res.json({ message: "Success", ...result });
 
     } catch (error: any) {
