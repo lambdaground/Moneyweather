@@ -1,11 +1,15 @@
 {
   "crons": [
     {
-      "path": "/api/market/refresh",
+      "path": "/api/cron.ts",
       "schedule": "*/10 * * * *"
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/cron.ts",
+      "destination": "/api/cron.ts"
+    },
     {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
