@@ -50,6 +50,8 @@ export class MemStorage implements IStorage {
   // 🔥 핵심: 외부 API 대신 Supabase DB에서 읽어오기
   async getMarketData(): Promise<MarketDataResponse> {
     try {
+      console.log("⚡️ Supabase에서 데이터 조회 중..."); // 이 로그가 떠야 성공입니다!
+
       // 1. Supabase에서 데이터 긁어오기
       const { data: rows, error } = await supabase
         .from('market_data')
