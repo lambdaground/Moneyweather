@@ -16,7 +16,11 @@
       "destination": "/api/cron"
     },
     {
-      "source": "/api/(.*)", 
+      "source": "/api/cron",
+      "destination": "/api/cron"
+    },
+    {
+      "source": "/api/((?!cron).*)",
       "destination": "/api/index"
     }
   ]
