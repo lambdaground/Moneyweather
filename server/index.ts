@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
+// 1. .js 확장자 제거 (가장 중요!)
+import { registerRoutes } from "./routes"; 
 import { createServer } from "http";
 
 const app = express();
@@ -51,21 +52,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// 4. 에러 핸들러 (유지)
-// 주의: 라우트 등록 후에 에러 핸들러가 와야 하므로, 
-// 여기서는 일반적인 미들웨어로만 두고, registerRoutes 내부에서 에러 처리를 하거나
-// setupApp 실행 시점에 순서를 보장해야 합니다. 
-// 하지만 기존 구조를 유지하기 위해 아래 함수를 export 합니다.
-
-// ⭐️ 중요: 라우트 등록 상태를 체크하는 변수
+// 4. 에러 핸들러 및 설정 (유지 및 보완)
 let routesRegistered = false;
 
-// ⭐️ 중요: Vercel이 호출할 초기화 함수
 export async function setupApp() {
   if (!routesRegistered) {
     await registerRoutes(httpServer, app);
     
-    // 에러 핸들러는 라우트 등록 후에 붙어야 가장 안전합니다.
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -76,6 +69,21 @@ export async function setupApp() {
     routesRegistered = true;
   }
   return app;
+}
+
+// 5. [추가] 로컬 개발 환경 실행 코드
+// Vercel은 이 부분을 실행하지 않고 export된 app만 가져가지만,
+// 'npm run dev'로 실행할 때는 이 부분이 서버를 켜줍니다.
+if (process.env.NODE_ENV !== "production") {
+  setupApp().then(() => {
+    const PORT = 5000;
+    httpServer.listen(PORT, () => {
+      log(`serving on port ${PORT}`);
+    });
+  }).catch((err) => {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  });
 }
 
 export default app;
