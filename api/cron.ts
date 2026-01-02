@@ -1,39 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Vercel 무료 요금제 타임아웃 방지 (최대 60초)
 export const config = {
   maxDuration: 60,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 1. 보안 체크 (수동 실행을 위한 'debug' 키 추가)
+  // 1. 보안 체크 (자동 실행 vs 수동 실행)
   const authHeader = req.headers.authorization || req.headers.Authorization;
-  
-  // ★ 수정된 부분: URL 뒤에 ?key=debug1234 라고 붙이면 통과시켜줌
   const { key } = req.query;
-  const isManualRun = key === 'debug1234';
+  const isManualRun = key === 'debug1234'; // 수동 실행 키
 
+  // 키도 없고, Vercel Cron 헤더도 없으면 차단
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && !isManualRun) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // ... (나머지 코드는 동일) ...
-  
-  // 2. Supabase 설정 확인
+  // 2. Supabase 클라이언트 설정
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // ★ 중요: 쓰기 권한이 있는 Service Role Key 사용
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    console.error("Supabase 환경변수 누락");
+    console.error("Supabase 환경변수 누락 (SUPABASE_SERVICE_ROLE_KEY 확인 필요)");
     return res.status(500).json({ error: 'Supabase environment variables missing' });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // Helper: 환경변수 가져오기
+  // --- Helper Functions ---
   const getEnv = (key: string): string => process.env[key] || process.env[`VITE_${key}`] || '';
 
-  // Helper: Fetch with Timeout & User-Agent (차단 회피용)
+  // 타임아웃 및 차단 방지용 Fetch 함수
   async function fetchWithTimeout(url: string, timeout = 15000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
@@ -42,6 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const response = await fetch(url, { 
         signal: controller.signal,
         headers: {
+          // 브라우저인 척 속이는 헤더 (Yahoo 등 차단 방지)
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         }
@@ -54,10 +54,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // --- API Fetchers (기존과 동일) ---
-  // (여기부터 아래의 fetchExchangeRates, fetchYahoo 등 기존 함수들은 그대로 두세요)
-  
-  async function fetchExchangeRates() { /* ... 생략 (기존 코드 유지) ... */ 
+  // --- API Fetchers ---
+
+  // 1. 환율
+  async function fetchExchangeRates() {
     try {
       const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
       if (!res.ok) throw new Error(`Status ${res.status}`);
@@ -67,9 +67,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return null;
     }
   }
-  
-  async function fetchYahoo(symbol: string) { /* ... 생략 (기존 코드 유지) ... */ 
+
+  // 2. 야후 파이낸스 (주식, 지수, 원자재, 채권)
+  async function fetchYahoo(symbol: string) {
     try {
+      // 차트 데이터까지 가져옴 (가격 정확도 높음)
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=5d`;
       const res = await fetchWithTimeout(url);
       if (!res.ok) throw new Error(`Status ${res.status}`);
@@ -93,7 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  async function fetchCrypto(id: string) { /* ... 생략 (기존 코드 유지) ... */
+  // 3. 코인 (CoinGecko)
+  async function fetchCrypto(id: string) {
     try {
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=krw&include_24hr_change=true`;
       const res = await fetchWithTimeout(url);
@@ -109,7 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  async function fetchFuel() { /* ... 생략 (기존 코드 유지) ... */
+  // 4. 오피넷 (유가 - API 키 필요)
+  async function fetchFuel() {
     const apiKey = getEnv('OPINET_API_KEY');
     if (!apiKey || apiKey === 'DEMO_KEY') return null;
     
@@ -135,7 +139,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  async function fetchRealEstate() { /* ... 생략 (기존 코드 유지) ... */
+  // 5. 부동산 (공공데이터포털 - API 키 필요)
+  async function fetchRealEstate() {
     const apiKey = getEnv('REB_API_KEY');
     if (!apiKey) return null;
 
@@ -154,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!target) return null;
       
       const priceIndex = parseFloat(target.DTA_VAL);
-      const gangnamPrice = (priceIndex / 100) * 25;
+      const gangnamPrice = (priceIndex / 100) * 25; // 단순 환산 로직
 
       return { price: gangnamPrice, originalIndex: priceIndex };
     } catch (e: any) {
@@ -163,7 +168,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  async function fetchECOS(statCode: string, itemCode: string, cycle = 'M') { /* ... 생략 (기존 코드 유지) ... */
+  // 6. ECOS (한국은행 - API 키 필요)
+  async function fetchECOS(statCode: string, itemCode: string, cycle = 'M') {
     const apiKey = getEnv('ECOS_API_KEY');
     if (!apiKey) return null;
 
@@ -206,7 +212,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     console.log("Cron 작업 시작... (Max Duration: 60s)");
 
-    // ... (여기부터 Promise.allSettled 부분도 기존 코드 유지) ...
+    // 모든 API를 병렬로 호출하되, 하나가 실패해도 멈추지 않음 (allSettled)
     const results = await Promise.allSettled([
       fetchExchangeRates(),
       fetchYahoo('KRW=X'),
@@ -224,9 +230,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fetchECOS('511Y002', 'FME/99988', 'M')
     ]);
 
+    // 결과 값 추출 Helper
     const getData = (index: number) => 
       results[index].status === 'fulfilled' ? (results[index] as PromiseFulfilledResult<any>).value : null;
 
+    // 순서대로 변수에 할당
     const [
       exchange, usdkrw,
       dowjones, kospi, kosdaq, nasdaq, sp500,
@@ -240,8 +248,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cpi, ppi, ccsi
     ] = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(getData);
 
+    // 환율 기준값 (API 실패 시 1400원 fallback)
     const usdPrice = exchange?.rates?.KRW || usdkrw?.price || 1400;
 
+    // DB에 저장할 데이터 목록 구성
     const updates: any[] = [
       { category: 'usdkrw', payload: { price: usdPrice, change: usdkrw?.change }, updated_at: new Date() },
       { category: 'jpykrw', payload: { price: (usdPrice / (exchange?.rates?.JPY || 1)) * 100 }, updated_at: new Date() },
@@ -268,26 +278,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { category: 'ccsi', payload: ccsi, updated_at: new Date() },
     ];
 
+    // 유효한 데이터만 필터링 (price가 있는 것만)
     const validUpdates = updates.filter(u => 
       u.payload && 
       (typeof u.payload.price === 'number' && !isNaN(u.payload.price))
     );
 
     if (validUpdates.length === 0) {
-      console.log("저장할 데이터가 없습니다.");
+      console.error("모든 API 호출 실패: 저장할 데이터가 없습니다.");
       return res.status(200).json({ message: 'No data to update', log: 'All fetches failed' });
     }
 
+    // Supabase에 저장 (Upsert: 있으면 수정, 없으면 생성)
     const { error } = await supabase
       .from('market_data')
       .upsert(validUpdates);
 
     if (error) {
       console.error("Supabase 저장 실패:", error);
-      throw error;
+      throw error; // 에러를 던져서 catch 블록으로 이동
     }
 
-    console.log(`Cron 완료: 총 ${validUpdates.length}개 저장됨`);
+    console.log(`Cron 완료: 총 ${validUpdates.length}개 항목 저장 성공`);
     return res.status(200).json({ message: 'Success', count: validUpdates.length });
 
   } catch (error: any) {
