@@ -1,8 +1,9 @@
 // server/storage.ts
-import { ... } from "./shared/schema.ts";
-// import { type User, type InsertUser, type AssetData, type MarketDataResponse } from "@shared/schema";
+// 1. 상대 경로(../shared/schema)로 수정하고 필요한 타입들을 가져옵니다.
+import { type User, type InsertUser, type MarketDataResponse } from "../shared/schema";
 import { randomUUID } from "crypto";
-import { fetchRealMarketData } from "./realMarketData.js";
+// 2. 같은 폴더 내 파일은 확장자(.js) 없이 가져오는 것이 TypeScript 표준입니다.
+import { fetchRealMarketData } from "./realMarketData";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
