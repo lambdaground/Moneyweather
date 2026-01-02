@@ -1,28 +1,27 @@
 // server/storage.ts
-// 1. 상대 경로(../shared/schema)로 수정하고 필요한 타입들을 가져옵니다.
 import { type User, type InsertUser, type MarketDataResponse } from "../shared/schema";
 import { randomUUID } from "crypto";
-// 2. 같은 폴더 내 파일은 확장자(.js) 없이 가져오는 것이 TypeScript 표준입니다.
-import { fetchRealMarketData } from "./realMarketData";
+// 데이터 변환 함수만 가져옵니다 (API 호출 함수는 이제 안 씁니다!)
+import { convertToAssetData } from "./realMarketData"; 
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase 클라이언트 연결
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getMarketData(): Promise<MarketDataResponse>;
-  refreshMarketData(): Promise<MarketDataResponse>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private cachedMarketData: MarketDataResponse | null;
-  private lastGenerated: number;
-  private readonly cacheLifetime = 30000; // 30 seconds cache
 
   constructor() {
     this.users = new Map();
-    this.cachedMarketData = null;
-    this.lastGenerated = 0;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -42,39 +41,40 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  // 🔥 핵심 변경: 외부 API 대신 Supabase DB에서 읽어오기
   async getMarketData(): Promise<MarketDataResponse> {
-    const now = Date.now();
-    
-    // Return cached data if still valid
-    if (this.cachedMarketData && (now - this.lastGenerated) < this.cacheLifetime) {
-      return this.cachedMarketData;
-    }
-
-    // Fetch fresh data from real APIs
-    return this.fetchAndCacheData();
-  }
-
-  async refreshMarketData(): Promise<MarketDataResponse> {
-    // Force regeneration - bypass cache
-    return this.fetchAndCacheData();
-  }
-
-  private async fetchAndCacheData(): Promise<MarketDataResponse> {
     try {
-      const assets = await fetchRealMarketData();
-      this.cachedMarketData = {
-        assets,
-        generatedAt: new Date().toISOString(),
-      };
-      this.lastGenerated = Date.now();
-      return this.cachedMarketData;
-    } catch (error) {
-      console.error('Error fetching real market data:', error);
-      // If we have cached data, return it even if expired
-      if (this.cachedMarketData) {
-        return this.cachedMarketData;
+      // 1. Supabase에서 데이터 긁어오기 (0.1초 소요)
+      const { data: rows, error } = await supabase
+        .from('market_data')
+        .select('*');
+
+      if (error || !rows || rows.length === 0) {
+        console.error("DB가 비어있거나 에러:", error);
+        // 비상시: 빈 데이터라도 리턴하거나 예외 처리 (여기서는 빈 배열 리턴)
+        return { assets: [], generatedAt: new Date().toISOString() };
       }
-      throw error;
+
+      // 2. DB 데이터를 convertToAssetData가 좋아하는 모양(RawMarketData)으로 조립
+      const rawData: any = {};
+      
+      rows.forEach((row: any) => {
+        // row.category 예: 'usdkrw', 'bitcoin'
+        // row.payload 예: { price: 1400, change: 0.5 }
+        rawData[row.category] = row.payload;
+      });
+
+      // 3. 날씨/조언 등 문구 생성 (convertToAssetData 재활용)
+      const assets = convertToAssetData(rawData);
+
+      return {
+        assets,
+        generatedAt: new Date().toISOString(), // 현재 시간
+      };
+
+    } catch (error) {
+      console.error('Storage Error:', error);
+      return { assets: [], generatedAt: new Date().toISOString() };
     }
   }
 }
