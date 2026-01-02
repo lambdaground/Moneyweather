@@ -8,7 +8,13 @@ import { createClient } from '@supabase/supabase-js';
 // Supabase 클라이언트 연결
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+// 환경변수 체크
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Supabase 환경변수가 없습니다. .env 파일을 확인하세요.");
+}
+
+const supabase = createClient(supabaseUrl || '', supabaseKey || '');
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -41,17 +47,21 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  // 🔥 핵심 변경: 외부 API 대신 Supabase DB에서 읽어오기
+  // 🔥 핵심: 외부 API 대신 Supabase DB에서 읽어오기
   async getMarketData(): Promise<MarketDataResponse> {
     try {
-      // 1. Supabase에서 데이터 긁어오기 (0.1초 소요)
+      // 1. Supabase에서 데이터 긁어오기
       const { data: rows, error } = await supabase
         .from('market_data')
         .select('*');
 
-      if (error || !rows || rows.length === 0) {
-        console.error("DB가 비어있거나 에러:", error);
-        // 비상시: 빈 데이터라도 리턴하거나 예외 처리 (여기서는 빈 배열 리턴)
+      if (error) {
+        console.error("Supabase 조회 에러:", error);
+        return { assets: [], generatedAt: new Date().toISOString() };
+      }
+
+      if (!rows || rows.length === 0) {
+        console.log("DB가 비어있습니다. (Cron Job을 실행해주세요)");
         return { assets: [], generatedAt: new Date().toISOString() };
       }
 
@@ -69,7 +79,7 @@ export class MemStorage implements IStorage {
 
       return {
         assets,
-        generatedAt: new Date().toISOString(), // 현재 시간
+        generatedAt: new Date().toISOString(),
       };
 
     } catch (error) {
