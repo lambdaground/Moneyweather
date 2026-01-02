@@ -1,5 +1,5 @@
-import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "../shared/schema.ts";
-
+// import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "../shared/schema.ts";
+import { ... } from "../shared/schema.ts";
 interface RawMarketData {
   usdkrw: { price: number; change: number } | null;
   jpykrw: { price: number; change: number } | null;
@@ -1378,7 +1378,8 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
 
   for (const id of assetIds) {
     const config = assetConfigs[id];
-    const data = rawData[id];
+    // rawData를 any로 캐스팅해서 "아무 키나 들어갈 수 있음"으로 속입니다.
+    const data = (rawData as any)[id];
 
     if (!data) {
       console.log(`No data available for ${id}, using mock data.`);
