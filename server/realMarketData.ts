@@ -1,5 +1,5 @@
-// import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "../shared/schema.ts";
-import { ... } from "../shared/schema.ts";
+import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "../shared/schema";
+// import { ... } from "../shared/schema.ts";
 interface RawMarketData {
   usdkrw: { price: number; change: number } | null;
   jpykrw: { price: number; change: number } | null;
