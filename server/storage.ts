@@ -1,4 +1,6 @@
-import { type User, type InsertUser, type AssetData, type MarketDataResponse } from "@shared/schema";
+// server/storage.ts
+import { ... } from '../shared/schema';
+// import { type User, type InsertUser, type AssetData, type MarketDataResponse } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { fetchRealMarketData } from "./realMarketData.js";
 
