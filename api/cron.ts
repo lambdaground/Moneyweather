@@ -1,34 +1,51 @@
 import { createClient } from '@supabase/supabase-js';
-import type { VercelRequest, VercelResponse } from '@vercel/node'; // ★ 여기 추가됨
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Vercel Serverless Function (Vite/Node.js 환경)
-// ★ req, res에 타입을 지정해줘야 빌드 에러가 안 납니다.
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // 1. 보안 체크
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).send('Unauthorized');
+  // 1. 보안 체크 (수동 실행을 위한 'debug' 키 추가)
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  
+  // ★ 수정된 부분: URL 뒤에 ?key=debug1234 라고 붙이면 통과시켜줌
+  const { key } = req.query;
+  const isManualRun = key === 'debug1234';
+
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}` && !isManualRun) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // 2. Supabase 클라이언트 설정
+  // ... (나머지 코드는 동일) ...
+  
+  // 2. Supabase 설정 확인
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
+    console.error("Supabase 환경변수 누락");
     return res.status(500).json({ error: 'Supabase environment variables missing' });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  // --- Helper Functions ---
-  // process.env가 undefined일 수 있으므로 string으로 변환하거나 예외 처리
+  // Helper: 환경변수 가져오기
   const getEnv = (key: string): string => process.env[key] || process.env[`VITE_${key}`] || '';
 
-  async function fetchWithTimeout(url: string, timeout = 8000) {
+  // Helper: Fetch with Timeout & User-Agent (차단 회피용)
+  async function fetchWithTimeout(url: string, timeout = 15000) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
+    
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        }
+      });
       clearTimeout(id);
       return response;
     } catch (error) {
@@ -37,30 +54,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // --- API Fetchers ---
-
-  // 1. 환율 (ExchangeRate-API)
-  async function fetchExchangeRates() {
+  // --- API Fetchers (기존과 동일) ---
+  // (여기부터 아래의 fetchExchangeRates, fetchYahoo 등 기존 함수들은 그대로 두세요)
+  
+  async function fetchExchangeRates() { /* ... 생략 (기존 코드 유지) ... */ 
     try {
       const res = await fetchWithTimeout('https://api.exchangerate-api.com/v4/latest/USD');
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       return await res.json();
-    } catch (e) {
-      console.error('Exchange fetch failed', e);
+    } catch (e: any) {
+      console.error(`[Fail] Exchange: ${e.message}`);
       return null;
     }
   }
-
-  // 2. 야후 파이낸스
-  async function fetchYahoo(symbol: string) {
+  
+  async function fetchYahoo(symbol: string) { /* ... 생략 (기존 코드 유지) ... */ 
     try {
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=5d`;
       const res = await fetchWithTimeout(url);
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const result = data.chart?.result?.[0];
       
-      if (!result) return null;
+      if (!result) throw new Error('No Data');
 
       const meta = result.meta;
       const currentPrice = meta.regularMarketPrice;
@@ -71,42 +87,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         change: previousClose ? ((currentPrice - previousClose) / previousClose) * 100 : 0,
         previousClose,
       };
-    } catch (e) {
-      console.error(`Yahoo ${symbol} failed`, e);
+    } catch (e: any) {
+      console.error(`[Fail] Yahoo(${symbol}): ${e.message}`);
       return null;
     }
   }
 
-  // 3. 코인
-  async function fetchCrypto(id: string) {
+  async function fetchCrypto(id: string) { /* ... 생략 (기존 코드 유지) ... */
     try {
       const url = `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=krw&include_24hr_change=true`;
       const res = await fetchWithTimeout(url);
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       return {
         price: data[id]?.krw,
         change: data[id]?.krw_24h_change
       };
-    } catch (e) {
-      console.error(`Crypto ${id} failed`, e);
+    } catch (e: any) {
+      console.error(`[Fail] Crypto(${id}): ${e.message}`);
       return null;
     }
   }
 
-  // 4. 오피넷
-  async function fetchFuel() {
+  async function fetchFuel() { /* ... 생략 (기존 코드 유지) ... */
     const apiKey = getEnv('OPINET_API_KEY');
     if (!apiKey || apiKey === 'DEMO_KEY') return null;
     
     try {
       const url = `https://www.opinet.co.kr/api/avgAllPrice.do?out=json&code=${apiKey}`;
       const res = await fetchWithTimeout(url);
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const result = data.RESULT?.OIL;
       
-      if (!Array.isArray(result)) return null;
+      if (!Array.isArray(result)) throw new Error('Invalid Data');
       
       const gasoline = result.find((i: any) => i.PRODCD === 'B027');
       const diesel = result.find((i: any) => i.PRODCD === 'D047');
@@ -115,25 +129,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         gasoline: gasoline ? parseFloat(gasoline.PRICE) : null,
         diesel: diesel ? parseFloat(diesel.PRICE) : null
       };
-    } catch (e) {
-      console.error('Fuel failed', e);
+    } catch (e: any) {
+      console.error(`[Fail] Fuel: ${e.message}`);
       return null;
     }
   }
 
-  // 5. 부동산
-  async function fetchRealEstate() {
+  async function fetchRealEstate() { /* ... 생략 (기존 코드 유지) ... */
     const apiKey = getEnv('REB_API_KEY');
     if (!apiKey) return null;
 
     try {
       const url = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?STATBL_ID=A_2024_00900&DTACYCLE_CD=YY&WRTTIME_IDTFR_ID=2022&Type=json&serviceKey=${apiKey}`;
-      const res = await fetchWithTimeout(url, 10000);
-      if (!res.ok) return null;
+      const res = await fetchWithTimeout(url);
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const items = data.SttsApiTblData?.[1]?.row;
       
-      if (!items) return null;
+      if (!items) throw new Error('No Items');
 
       let target = items.find((i: any) => i.CLS_NM === '전국' || i.CLS_FULLNM?.startsWith('전국'));
       if (!target) target = items.find((i: any) => i.CLS_FULLNM?.startsWith('서울'));
@@ -144,14 +157,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const gangnamPrice = (priceIndex / 100) * 25;
 
       return { price: gangnamPrice, originalIndex: priceIndex };
-    } catch (e) {
-      console.error('RealEstate failed', e);
+    } catch (e: any) {
+      console.error(`[Fail] RealEstate: ${e.message}`);
       return null;
     }
   }
 
-  // 6. ECOS
-  async function fetchECOS(statCode: string, itemCode: string, cycle = 'M') {
+  async function fetchECOS(statCode: string, itemCode: string, cycle = 'M') { /* ... 생략 (기존 코드 유지) ... */
     const apiKey = getEnv('ECOS_API_KEY');
     if (!apiKey) return null;
 
@@ -172,10 +184,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     try {
       const res = await fetchWithTimeout(url);
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`Status ${res.status}`);
       const data = await res.json();
       const rows = data.StatisticSearch?.row;
-      if (!rows || rows.length === 0) return null;
+      if (!rows || rows.length === 0) throw new Error('No Data');
       
       const latest = rows[rows.length - 1];
       const prev = rows.length > 1 ? rows[rows.length - 2] : null;
@@ -184,29 +196,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const prevPrice = prev ? parseFloat(prev.DATA_VALUE) : price;
       
       return { price, change: price - prevPrice };
-    } catch (e) {
-      console.error(`ECOS ${itemCode} failed`, e);
+    } catch (e: any) {
+      console.error(`[Fail] ECOS(${itemCode}): ${e.message}`);
       return null;
     }
   }
 
   // --- Main Execution ---
   try {
-    console.log("Cron 작업 시작...");
+    console.log("Cron 작업 시작... (Max Duration: 60s)");
 
-    const [
-      exchange,
-      usdkrw,
-      dowjones, kospi, kosdaq, nasdaq, sp500,
-      gold, silver,
-      btc, eth,
-      fuel,
-      realEstate,
-      bokRate,
-      bond3y, bond10y,
-      usBond10y, usBond2y,
-      cpi, ppi, ccsi
-    ] = await Promise.all([
+    // ... (여기부터 Promise.allSettled 부분도 기존 코드 유지) ...
+    const results = await Promise.allSettled([
       fetchExchangeRates(),
       fetchYahoo('KRW=X'),
       fetchYahoo('^DJI'), fetchYahoo('^KS11'), fetchYahoo('^KQ11'), fetchYahoo('^IXIC'), fetchYahoo('^GSPC'),
@@ -222,6 +223,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       fetchECOS('901Y010', '0', 'M'),
       fetchECOS('511Y002', 'FME/99988', 'M')
     ]);
+
+    const getData = (index: number) => 
+      results[index].status === 'fulfilled' ? (results[index] as PromiseFulfilledResult<any>).value : null;
+
+    const [
+      exchange, usdkrw,
+      dowjones, kospi, kosdaq, nasdaq, sp500,
+      gold, silver,
+      btc, eth,
+      fuel,
+      realEstate,
+      bokRate,
+      bond3y, bond10y,
+      usBond10y, usBond2y,
+      cpi, ppi, ccsi
+    ] = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(getData);
 
     const usdPrice = exchange?.rates?.KRW || usdkrw?.price || 1400;
 
@@ -251,19 +268,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { category: 'ccsi', payload: ccsi, updated_at: new Date() },
     ];
 
-    const validUpdates = updates.filter(u => u.payload && (u.payload.price !== undefined && u.payload.price !== null));
+    const validUpdates = updates.filter(u => 
+      u.payload && 
+      (typeof u.payload.price === 'number' && !isNaN(u.payload.price))
+    );
+
+    if (validUpdates.length === 0) {
+      console.log("저장할 데이터가 없습니다.");
+      return res.status(200).json({ message: 'No data to update', log: 'All fetches failed' });
+    }
 
     const { error } = await supabase
       .from('market_data')
       .upsert(validUpdates);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase 저장 실패:", error);
+      throw error;
+    }
 
-    console.log("Cron 업데이트 완료:", validUpdates.length, "개 항목");
-    return res.status(200).json({ message: 'Market data updated', count: validUpdates.length });
+    console.log(`Cron 완료: 총 ${validUpdates.length}개 저장됨`);
+    return res.status(200).json({ message: 'Success', count: validUpdates.length });
 
   } catch (error: any) {
-    console.error("Cron 에러:", error);
+    console.error("Critical Cron Error:", error);
     return res.status(500).json({ error: error.message });
   }
 }
