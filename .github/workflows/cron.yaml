@@ -1,0 +1,14 @@
+name: 10분마다 실행
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # 10분마다 실행
+  workflow_dispatch: # 수동 실행 버튼 추가
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vercel Cron API 호출
+        run: |
+          curl -X GET "https://moneyweather.lambdaground.com/api/cron?key=${{ secrets.CRON_SECRET }}"
