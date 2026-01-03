@@ -1,5 +1,11 @@
-// api/index.ts (전체 코드)
-import app from '../server/index'; // server/index.ts에서 만든 app을 가져옴
+// api/index.ts
+import app, { setupApp } from '../server/index'; 
 
-// Vercel은 이 default export를 실행함
-export default app;
+// Vercel이 실행하는 핸들러 함수
+export default async function handler(req: any, res: any) {
+  // 1. 요청이 들어오면, 가장 먼저 라우트 설정을 완료하기 위해 기다립니다.
+  await setupApp(); 
+  
+  // 2. 설정이 끝난 꽉 찬 app에게 요청을 넘깁니다.
+  app(req, res);
+}
