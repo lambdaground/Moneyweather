@@ -8,6 +8,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+   // 👉 이 로그를 추가해주세요!
+  console.log("🛠️ [DEBUG] 라우트 등록 시작! /api/cron 포함됨?");
   
   // 1. 일반 데이터 조회 (기존에 잘 되던 것)
   app.get("/api/market", async (req, res) => {
@@ -48,3 +50,4 @@ export async function registerRoutes(
 
   return httpServer;
 }
+
