@@ -6,9 +6,9 @@
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
 
-    /* 1. Node.js 배포 환경에 맞게 모듈 설정 변경 (가장 중요) */
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    /* 🔥 [수정됨] NodeNext -> CommonJS/Node 로 변경하여 확장자 강제 제거 */
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "target": "ES2020",
 
     "strict": true,
