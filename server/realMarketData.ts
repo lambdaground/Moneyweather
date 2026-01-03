@@ -1,5 +1,5 @@
 import type { AssetData, AssetType, WeatherStatus, AssetCategory } from "../shared/schema";
-// import { ... } from "../shared/schema.ts";
+
 interface RawMarketData {
   usdkrw: { price: number; change: number } | null;
   jpykrw: { price: number; change: number } | null;
@@ -120,11 +120,8 @@ async function fetchExchangeRates(): Promise<Record<string, { price: number; cha
 
 async function fetchYahooFinance(symbol: string): Promise<{ price: number; change: number; previousClose?: number; chartData?: { time: string; price: number }[] } | null> {
   try {
-    // For stock indices, use daily data to get accurate closing prices
-    // Hourly data doesn't capture the exact market close time
     const isStockIndex = symbol === '^KS11' || symbol === '^KQ11' || symbol === '^IXIC' || symbol === '^GSPC' || symbol === '^DJI';
     
-    // Fetch hourly data for chart display
     const hourlyResponse = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1h&range=5d`
     );
@@ -142,7 +139,6 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
     let currentPrice: number | undefined;
     let prevClose: number | undefined;
     
-    // For stock indices, fetch daily data to get accurate closing prices
     if (isStockIndex) {
       try {
         const dailyResponse = await fetchWithTimeout(
@@ -157,7 +153,6 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
             const dailyTimestamps = dailyResult.timestamp;
             const dailyCloses = dailyResult.indicators.quote[0].close;
             
-            // Get the last two valid daily closes
             const validDays: { date: string; close: number }[] = [];
             for (let i = dailyTimestamps.length - 1; i >= 0 && validDays.length < 2; i--) {
               if (dailyCloses[i] !== null && dailyCloses[i] !== undefined) {
@@ -184,7 +179,6 @@ async function fetchYahooFinance(symbol: string): Promise<{ price: number; chang
       }
     }
     
-    // Fallback to API values if daily calculation failed or not a stock index
     if (!currentPrice) {
       currentPrice = meta?.regularMarketPrice;
     }
@@ -313,7 +307,6 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
       return null;
     }
 
-    // 부동산통계정보시스템 API - 주택종합 매매가격지수
     const url = `https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?STATBL_ID=A_2024_00900&DTACYCLE_CD=YY&WRTTIME_IDTFR_ID=2022&Type=json&serviceKey=${apiKey}`;
 
     const response = await fetchWithTimeout(url, 10000);
@@ -325,7 +318,6 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
 
     const data = await response.json();
 
-    // API 응답 구조: {"SttsApiTblData": [{"head": [...]}, {"row": [...]}]}
     const apiData = data.SttsApiTblData;
     if (!apiData || !Array.isArray(apiData) || apiData.length < 2) {
       console.log('Unexpected REB API response structure');
@@ -340,21 +332,18 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
       return null;
     }
 
-    // 전국 데이터 찾기 (CLS_FULLNM이 '전국'으로 시작하는 항목)
     let nationalData = items.find((item: any) =>
       item.CLS_NM === '전국' ||
       item.CLS_FULLNM === '전국' ||
       (item.CLS_FULLNM && item.CLS_FULLNM.startsWith('전국'))
     );
 
-    // 전국 데이터가 없으면 서울 데이터 찾기
     if (!nationalData) {
       nationalData = items.find((item: any) =>
         item.CLS_FULLNM && item.CLS_FULLNM.startsWith('서울')
       );
     }
 
-    // 서울도 없으면 모든 지역의 평균 계산
     let price: number;
     if (!nationalData) {
       const validItems = items.filter((item: any) =>
@@ -383,7 +372,6 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
 
     previousRealEstatePrice = price;
 
-    // 지수를 강남 30평 아파트 시세로 변환 (100 = 25억원 기준)
     const gangnamPrice = (price / 100) * 25;
 
     console.log('Gangnam Apartment Price calculated:', {
@@ -402,10 +390,9 @@ async function fetchRealEstateIndex(): Promise<{ price: number; change: number }
   }
 }
 
-// 한국은행 ECOS API - 기준금리 데이터
 let previousBokRate: number | null = null;
 let lastFetch: number = 0;
-const FETCH_INTERVAL = 86400000; // 1일(밀리초)
+const FETCH_INTERVAL = 86400000; 
 
 async function fetchBokBaseRate(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.VITE_ECOS_API_KEY;
@@ -424,8 +411,6 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
   lastFetch = now;
 
   try {
-    // ECOS API: 한국은행 기준금리 통계표 코드 722Y001, 항목코드 0101000
-    // 최근 2개월 데이터 조회 (월별)
     const today = new Date();
     const endDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
     const startYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear();
@@ -444,7 +429,6 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
 
     const data = await response.json();
 
-    // API 응답 구조 확인
     if (!data.StatisticSearch || data.StatisticSearch.RESULT) {
       const result = data.StatisticSearch?.RESULT;
       console.log('ECOS API error:', result?.MESSAGE || 'Unknown error');
@@ -458,7 +442,6 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
       return null;
     }
 
-    // 가장 최신 데이터
     const latestRow = searchResult[searchResult.length - 1];
     const currentRate = parseFloat(latestRow.DATA_VALUE);
 
@@ -496,7 +479,6 @@ async function fetchBokBaseRate(): Promise<{ price: number; change: number } | n
   }
 }
 
-// 국고채 금리 조회 (3년물/10년물)
 async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.VITE_ECOS_API_KEY;
 
@@ -555,7 +537,6 @@ async function fetchKoreanBondRate(itemCode: string, name: string): Promise<{ pr
   }
 }
 
-// 소비자물가지수(CPI) 조회
 async function fetchCPI(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.VITE_ECOS_API_KEY;
 
@@ -605,7 +586,6 @@ async function fetchCPI(): Promise<{ price: number; change: number } | null> {
   }
 }
 
-// 생산자물가지수(PPI) 조회
 async function fetchPPI(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.VITE_ECOS_API_KEY;
 
@@ -655,7 +635,6 @@ async function fetchPPI(): Promise<{ price: number; change: number } | null> {
   }
 }
 
-// 소비자심리지수(CCSI) 조회
 async function fetchCCSI(): Promise<{ price: number; change: number } | null> {
   const apiKey = process.env.VITE_ECOS_API_KEY;
 
@@ -756,12 +735,10 @@ export async function fetchAllMarketData(): Promise<RawMarketData> {
     fetchCCSI(),
   ]);
 
-  // Update cached USD/KRW for other calculations
   if (usdkrwData?.price) {
     cachedUsdKrw = usdkrwData.price;
   }
 
-  // 장단기 금리차 계산 (10년물 - 3년물)
   let yieldspread: { price: number; change: number } | null = null;
   if (krbond10y && krbond3y) {
     const spread = krbond10y.price - krbond3y.price;
@@ -877,8 +854,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
   jpykrw: {
     name: '일본 엔화',
     category: 'currency',
-    getStatus: (price) => getCurrencyStatus(price * 100, 900, 950), // 100엔 기준으로 비교
-    formatPrice: (p) => `${(p * 100).toFixed(2)} KRW/100엔`, // 1엔 -> 100엔 기준으로 변환
+    getStatus: (price) => getCurrencyStatus(price * 100, 900, 950),
+    formatPrice: (p) => `${(p * 100).toFixed(2)} KRW/100엔`,
     messages: {
       sunny: '일본 여행 찬스! 엔화가 싸요.',
       rainy: '엔화가 비싸졌어요. 일본 여행은 나중에?',
@@ -1066,7 +1043,6 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     category: 'commodity',
     getStatus: (_, change) => getRealEstateStatus(change),
     formatPrice: (p) => {
-      // p는 억원 단위로 저장됨 (예: 25 = 25억원)
       return `${p.toFixed(1)}억 (30평)`;
     },
     messages: {
@@ -1193,8 +1169,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '장단기 금리차',
     category: 'bonds',
     getStatus: (price, change) => {
-      if (price < 0) return 'thunder';  // 역전 발생
-      if (price < 0.2) return 'rainy';  // 역전 임박
+      if (price < 0) return 'thunder'; 
+      if (price < 0.2) return 'rainy'; 
       if (change > 0.05) return 'sunny';
       if (change < -0.05) return 'rainy';
       return 'cloudy';
@@ -1214,8 +1190,8 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '소비자물가',
     category: 'index',
     getStatus: (price, change) => {
-      if (change > 0.5) return 'rainy';   // 물가 상승 = 나쁨
-      if (change < -0.2) return 'sunny';  // 물가 하락 = 좋음
+      if (change > 0.5) return 'rainy';   
+      if (change < -0.2) return 'sunny'; 
       return 'cloudy';
     },
     formatPrice: (p) => `${p.toFixed(1)}`,
@@ -1252,10 +1228,10 @@ const assetConfigs: Record<AssetType, AssetConfig> = {
     name: '소비자심리',
     category: 'index',
     getStatus: (price, change) => {
-      if (price >= 110) return 'sunny';   // 강한 낙관
-      if (price >= 100) return 'cloudy';  // 낙관
-      if (price >= 90) return 'rainy';    // 비관
-      return 'thunder';                    // 강한 비관
+      if (price >= 110) return 'sunny';  
+      if (price >= 100) return 'cloudy'; 
+      if (price >= 90) return 'rainy';   
+      return 'thunder';                  
     },
     formatPrice: (p) => `${p.toFixed(0)}점`,
     messages: {
@@ -1299,7 +1275,7 @@ function generateMockData(id: AssetType): { price: number; change: number } {
     silver: { base: 31, volatility: 2 },
     gasoline: { base: 1700, volatility: 50 },
     diesel: { base: 1600, volatility: 50 },
-    kbrealestate: { base: 25, volatility: 0.5 },  // 강남 30평 아파트 25억원 기준
+    kbrealestate: { base: 25, volatility: 0.5 }, 
     bitcoin: { base: 97000, volatility: 5000 },
     ethereum: { base: 3500, volatility: 300 },
     bonds: { base: 4.2, volatility: 0.3 },
@@ -1326,6 +1302,11 @@ function generateMockData(id: AssetType): { price: number; change: number } {
 }
 
 function formatChangePoints(id: AssetType, price: number, change: number, previousClose?: number): { points: number; display: string } {
+  // 🛡️ Safety Check: 값이 없거나 이상하면 기본값 0으로 처리
+  if (price === undefined || price === null || isNaN(price)) price = 0;
+  if (change === undefined || change === null || isNaN(change)) change = 0;
+  if (previousClose === undefined || previousClose === null || isNaN(previousClose)) previousClose = undefined;
+
   let points = 0;
 
   if (previousClose && previousClose > 0) {
@@ -1336,6 +1317,9 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else if (change !== 0) {
     points = change;
   }
+
+  // points가 NaN이 되지 않도록 한 번 더 체크
+  if (isNaN(points)) points = 0;
 
   const isIndex = ['kospi', 'kosdaq', 'nasdaq', 'sp500', 'dowjones'].includes(id);
   const isCurrency = ['usdkrw', 'jpykrw', 'cnykrw', 'eurkrw'].includes(id);
@@ -1363,7 +1347,6 @@ function formatChangePoints(id: AssetType, price: number, change: number, previo
   } else if (id === 'gasoline' || id === 'diesel') {
     display = `${sign}${Math.round(points)}원`;
   } else if (id === 'kbrealestate') {
-    // 강남 아파트는 억원 단위로 표시
     display = `${sign}${(points * 1000).toFixed(0)}만원`;
   } else {
     display = `${sign}${points.toFixed(2)}`;
@@ -1378,7 +1361,6 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
 
   for (const id of assetIds) {
     const config = assetConfigs[id];
-    // rawData를 any로 캐스팅해서 "아무 키나 들어갈 수 있음"으로 속입니다.
     const data = (rawData as any)[id];
 
     if (!data) {
@@ -1416,9 +1398,13 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       continue;
     }
 
+    // 🛡️ Safety Check: data.change가 없는 경우 대비
+    if (data.change === undefined || data.change === null) {
+      data.change = 0;
+    }
+
     let priceForDisplay = data.price;
     let chartData = (data as any).chartData;
-
     let previousCloseForCalc = (data as any).previousClose;
 
     if (id === 'jpykrw') {
