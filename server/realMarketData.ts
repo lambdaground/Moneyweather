@@ -1426,7 +1426,7 @@ export function convertToAssetData(rawData: RawMarketData): AssetData[] {
       category: config.category,
       price: priceForDisplay,
       priceDisplay: config.formatPrice(data.price),
-      change: data.change,
+      change: parseFloat(data.change.toFixed(2)),
       changePoints: points,
       changePointsDisplay: display,
       status,
