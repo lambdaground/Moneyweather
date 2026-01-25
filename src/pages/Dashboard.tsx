@@ -91,39 +91,40 @@ export default function Dashboard() {
       const rawData = await res.json();
 
       const assets: AssetData[] = rawData.map((item: any) => {
-        const id = item.category.toLowerCase();
-        const config = ASSET_CONFIGS[id] || { 
-          name: id.toUpperCase(), cat: 'index', unit: '', source: '알 수 없음', timeBasis: '실시간',
-          advice: '시장 상황을 확인하세요.', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } 
-        };
-        
-        const price = item.payload?.price || 0;
-        const change = item.payload?.change || 0;
-        
-        let status: WeatherStatus = 'cloudy';
-        if (config.cat === 'crypto') {
-            status = Math.abs(change) > 3 ? 'thunder' : change > 1 ? 'sunny' : change < -1 ? 'rainy' : 'cloudy';
-        } else if (config.cat === 'currency') {
-            status = price > 1400 ? 'rainy' : price < 1350 ? 'sunny' : 'cloudy';
-        } else {
-            status = Math.abs(change) > 2 ? 'thunder' : change > 0.5 ? 'sunny' : change < -0.5 ? 'rainy' : 'cloudy';
-        }
+  const id = item.category.toLowerCase();
+  const config = ASSET_CONFIGS[id] || { 
+    name: id.toUpperCase(), cat: 'index', unit: '', source: '알 수 없음', timeBasis: '실시간',
+    advice: '시장 상황을 확인하세요.', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } 
+  };
+  
+  const price = item.payload?.price || 0;
+  const change = item.payload?.change || 0;
+  
+  let status: WeatherStatus = 'cloudy';
+  if (config.cat === 'crypto') {
+      status = Math.abs(change) > 3 ? 'thunder' : change > 1 ? 'sunny' : change < -1 ? 'rainy' : 'cloudy';
+  } else if (config.cat === 'currency') {
+      status = price > 1400 ? 'rainy' : price < 1350 ? 'sunny' : 'cloudy';
+  } else {
+      status = Math.abs(change) > 2 ? 'thunder' : change > 0.5 ? 'sunny' : change < -0.5 ? 'rainy' : 'cloudy';
+  }
 
-        return {
-          id,
-          name: config.name,
-          category: config.cat,
-          categoryName: CATEGORY_NAME_MAP[config.cat], 
-          price: Number(price.toFixed(price > 100 ? 0 : 2)),
-          change: Number(change.toFixed(2)),
-          status,
-          source: config.source,
-          timeBasis: config.timeBasis,
-          message: config.messages[status],
-          advice: config.advice,
-          unit: config.unit // [수정] 설정된 단위를 그대로 사용
-        };
-      });
+  return {
+    id,
+    name: config.name,
+    category: config.cat,
+    categoryName: CATEGORY_NAME_MAP[config.cat], 
+    // [수정] 지수(index)인 경우 소수점을 보존하고, 나머지는 기존처럼 100 이상일 때 반올림
+    price: config.cat === 'index' ? Number(price.toFixed(2)) : Number(price.toFixed(price > 100 ? 0 : 2)),
+    change: Number(change.toFixed(2)),
+    status,
+    source: config.source,
+    timeBasis: config.timeBasis,
+    message: config.messages[status],
+    advice: config.advice,
+    unit: config.unit
+  };
+});
 
       return { assets, generatedAt: rawData[0]?.updated_at || new Date().toISOString() };
     },
