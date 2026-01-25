@@ -20,7 +20,6 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 
-// 컴포넌트 및 라이브러리 임포트
 import SortableWeatherCard from '@/components/SortableWeatherCard';
 import WeatherCard from '@/components/WeatherCard';
 import DetailModal from '@/components/DetailModal';
@@ -35,34 +34,34 @@ const CARD_ORDER_KEY = 'moneyweather_card_order';
 const allCats: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
 const allWeathers: WeatherStatus[] = ['sunny', 'cloudy', 'rainy', 'thunder'];
 
-// 한글 이름 매핑 객체
-const nameMap: Record<string, string> = {
-  usdkrw: '달러/원 환율',
-  jpykrw: '엔/원 환율',
-  eurkrw: '유로/원 환율',
-  kospi: '코스피 지수',
-  kosdaq: '코스닥 지수',
-  nasdaq: '나스닥 지수',
-  dowjones: '다우존스 지수',
-  sp500: 'S&P 500',
-  gold: '국제 금 시세',
-  silver: '국제 은 시세',
-  gasoline: '국내 휘발유',
-  diesel: '국내 경유',
-  bitcoin: '비트코인',
-  ethereum: '이더리움',
-  kbrealestate: '전국 주택지수',
-  bokrate: '한국은행 금리',
-  bonds: '미 국채 10년',
-  bonds2y: '미 국채 2년',
-  krbond3y: '국고채 3년',
-  krbond10y: '국고채 10년',
-  cpi: '소비자물가지수',
-  ppi: '생산자물가지수',
-  ccsi: '소비자심리지수'
+// 1. 자산별 이름 및 단위 매핑 정보
+const ASSET_CONFIG: Record<string, { name: string; unit: string; cat: AssetCategory }> = {
+  usdkrw: { name: '달러/원 환율', unit: '원', cat: 'currency' },
+  jpykrw: { name: '엔/원 환율', unit: '원', cat: 'currency' },
+  eurkrw: { name: '유로/원 환율', unit: '원', cat: 'currency' },
+  kospi: { name: '코스피 지수', unit: '', cat: 'index' },
+  kosdaq: { name: '코스닥 지수', unit: '', cat: 'index' },
+  nasdaq: { name: '나스닥 지수', unit: '', cat: 'index' },
+  dowjones: { name: '다우존스 지수', unit: '', cat: 'index' },
+  sp500: { name: 'S&P 500', unit: '', cat: 'index' },
+  gold: { name: '국제 금 시세', unit: '달러', cat: 'commodity' },
+  silver: { name: '국제 은 시세', unit: '달러', cat: 'commodity' },
+  gasoline: { name: '국내 휘발유', unit: '원', cat: 'commodity' },
+  diesel: { name: '국내 경유', unit: '원', cat: 'commodity' },
+  bitcoin: { name: '비트코인', unit: '원', cat: 'crypto' },
+  ethereum: { name: '이더리움', unit: '원', cat: 'crypto' },
+  kbrealestate: { name: '전국 주택지수', unit: '', cat: 'index' },
+  bokrate: { name: '한국은행 금리', unit: '%', cat: 'bonds' },
+  bonds: { name: '미 국채 10년', unit: '%', cat: 'bonds' },
+  bonds2y: { name: '미 국채 2년', unit: '%', cat: 'bonds' },
+  krbond3y: { name: '국고채 3년', unit: '%', cat: 'bonds' },
+  krbond10y: { name: '국고채 10년', unit: '%', cat: 'bonds' },
+  cpi: { name: '소비자물가지수', unit: '', cat: 'index' },
+  ppi: { name: '생산자물가지수', unit: '', cat: 'index' },
+  ccsi: { name: '소비자심리지수', unit: '', cat: 'index' },
 };
 
-// 수치 변화에 따른 날씨 결정 함수
+// 2. 변동률에 따른 날씨 결정 로직
 const getWeatherStatus = (change: number): WeatherStatus => {
   if (change > 1.5) return 'sunny';
   if (change >= 0) return 'cloudy';
@@ -87,42 +86,30 @@ export default function Dashboard() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // 1. 데이터 페칭 로직 (JSON 파일 읽기)
+  // 3. 데이터 로드 및 형식 변환 (기존 기능 복구 핵심)
   const { data, isLoading, isError } = useQuery<MarketDataResponse>({
     queryKey: ['/market-data.json'],
     queryFn: async () => {
       const res = await fetch('/market-data.json');
       if (!res.ok) throw new Error('데이터 로드 실패');
-      
       const rawData = await res.json();
 
-      // JSON 데이터를 UI용 AssetData 형식으로 변환
       const assets: AssetData[] = rawData.map((item: any) => {
-        const cat = item.category;
-        let type: AssetCategory = 'index';
-        
-        if (['usdkrw', 'jpykrw', 'eurkrw'].includes(cat)) type = 'currency';
-        else if (['bitcoin', 'ethereum'].includes(cat)) type = 'crypto';
-        else if (['gold', 'silver', 'gasoline', 'diesel'].includes(cat)) type = 'commodity';
-        else if (cat.includes('bond') || cat === 'bokrate') type = 'bonds';
+        const config = ASSET_CONFIG[item.category];
+        const rawPrice = item.payload?.price || 0;
+        const rawChange = item.payload?.change || 0;
 
-        const changeVal = item.payload?.change || 0;
-
-        // 숫자를 안전하게 변환하고 소수점 2자리로 고정하는 로직 추가
-const rawPrice = item.payload?.price || 0;
-const rawChange = item.payload?.change || 0;
-
-return {
-  id: cat,
-  category: type,
-  name: nameMap[cat] || cat.toUpperCase(),
-  // 가격: 휘발유나 환율처럼 소수점이 중요한 경우 2자리, 아니면 정수로 표시
-  price: Number(Number(rawPrice).toFixed(cat.includes('krw') ? 0 : 2)),
-  // 변동률: 무조건 소수점 2자리까지 반올림
-  change: Number(Number(rawChange).toFixed(2)), 
-  status: getWeatherStatus(rawChange),
-  unit: cat.includes('krw') || cat.includes('fuel') ? '원' : '',
-};
+        return {
+          id: item.category,
+          category: config?.cat || 'index',
+          name: config?.name || item.category.toUpperCase(),
+          // 가격 포맷팅: 소수점 오차 제거
+          price: Number(rawPrice.toFixed(rawPrice > 100 ? 0 : 2)),
+          // 변동률 포맷팅: 소수점 2자리 고정
+          change: Number(rawChange.toFixed(2)),
+          status: getWeatherStatus(rawChange),
+          unit: config?.unit || '',
+        };
       });
 
       return {
@@ -130,13 +117,11 @@ return {
         generatedAt: rawData[0]?.updated_at || new Date().toISOString(),
       };
     },
-    refetchInterval: isEditMode ? false : 300000, // 5분마다 갱신
+    refetchInterval: isEditMode ? false : 300000, 
   });
 
-  // 2. 수동 새로고침 처리
   const refreshMutation = useMutation({
     mutationFn: async () => {
-      // 정적 파일 방식이므로 페이지를 새로고침하여 최신 파일을 불러옵니다.
       window.location.reload();
       return {};
     },
@@ -144,7 +129,6 @@ return {
 
   const allAssets = data?.assets || [];
 
-  // 3. 정렬 및 필터링 로직
   const sortedAssets = useMemo(() => {
     if (cardOrder.length === 0) return allAssets;
     const orderMap = new Map(cardOrder.map((id, index) => [id, index]));
@@ -156,7 +140,6 @@ return {
     selectedWeathers.includes(asset.status)
   );
 
-  // 4. 이펙트 핸들러
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -178,7 +161,6 @@ return {
     }
   }, [data?.generatedAt]);
 
-  // 5. 이벤트 핸들러들
   const handleToggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
@@ -220,13 +202,16 @@ return {
 
   const activeAsset = activeId ? sortedAssets.find(a => a.id === activeId) : null;
 
+  // 4. 시장 요약 코멘트 로직
   const getSummaryMessage = () => {
     if (allAssets.length === 0) return '';
     const sunnyCount = allAssets.filter(a => a.status === 'sunny').length;
     const thunderCount = allAssets.filter(a => a.status === 'thunder').length;
-    if (thunderCount >= 2) return '오늘은 시장이 불안정해요. 신중하게 결정하세요!';
-    if (sunnyCount >= 3) return '오늘은 좋은 날이에요! 투자하기 괜찮은 분위기네요.';
-    return '시장이 혼조세예요. 관심 있는 자산을 살펴보세요!';
+    
+    if (thunderCount >= 2) return '오늘은 시장이 불안정해요. 신중하게 결정하세요! ⛈️';
+    if (sunnyCount >= 3) return '오늘은 좋은 날이에요! 투자하기 괜찮은 분위기네요. ☀️';
+    if (sunnyCount === 0) return '오늘은 조용히 관망하는 게 좋겠어요. ☁️';
+    return '시장이 혼조세예요. 관심 있는 자산을 살펴보세요! ⛅';
   };
 
   return (
@@ -242,7 +227,7 @@ return {
 
       <main className="container mx-auto px-4 py-6 space-y-4">
         {data?.generatedAt && (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div data-testid="text-timestamp" className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>{formatTime(data.generatedAt)} 기준 ({timeAgo})</span>
           </div>
@@ -259,18 +244,20 @@ return {
         </div>
 
         {allAssets.length > 0 && (
-          <p className="text-center text-muted-foreground pt-2">{getSummaryMessage()}</p>
+          <p data-testid="text-summary" className="text-center text-muted-foreground pt-2">
+            {getSummaryMessage()}
+          </p>
         )}
 
         {isLoading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />)}
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />)}
           </div>
         )}
 
         {isError && (
           <div className="text-center py-12">
-            <p className="text-destructive">데이터를 불러오는 데 실패했어요. 깃허브 액션 설정을 확인해주세요.</p>
+            <p className="text-destructive">데이터를 불러오는 데 실패했어요. 10분 뒤에 다시 확인해보세요.</p>
           </div>
         )}
 
@@ -291,7 +278,9 @@ return {
         )}
 
         {!isLoading && !isError && assets.length === 0 && (
-          <div className="text-center py-12"><p className="text-muted-foreground">표시할 자산이 없어요.</p></div>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">선택한 조건에 맞는 자산이 없어요.</p>
+          </div>
         )}
       </main>
 
@@ -299,7 +288,9 @@ return {
 
       <footer className="border-t mt-auto">
         <div className="container mx-auto px-4 py-4">
-          <p className="text-center text-xs text-muted-foreground">머니 웨더는 금융 초보자를 위한 정보 제공 서비스입니다.</p>
+          <p data-testid="text-footer" className="text-center text-xs text-muted-foreground">
+            머니 웨더는 금융 초보자를 위한 정보 제공 서비스입니다. 투자 결정은 신중하게 하세요.
+          </p>
         </div>
       </footer>
     </div>
