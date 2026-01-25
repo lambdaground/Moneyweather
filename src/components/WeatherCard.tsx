@@ -8,6 +8,7 @@ import { getMarketStatusForAsset, type MarketStatusInfo } from '@/lib/marketStat
 interface WeatherCardProps {
   asset: AssetData;
   onClick: () => void;
+  isEditMode?: boolean; // 드래그 모드 대응
 }
 
 const weatherStyles: Record<WeatherStatus, { bg: string; border: string; iconBg: string }> = {
@@ -68,112 +69,74 @@ export default function WeatherCard({ asset, onClick }: WeatherCardProps) {
   return (
     <Card
       data-testid={`card-asset-${asset.id}`}
-      className={`${styles.bg} ${styles.border} border cursor-pointer transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]`}
+      className={`${styles.bg} ${styles.border} border cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99]`}
       onClick={onClick}
     >
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-4">
+        {/* 상단: 이름 및 시장 상태 */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 
-                data-testid={`text-asset-name-${asset.id}`}
-                className="font-semibold text-foreground truncate"
-              >
+              <h3 className="font-bold text-base text-foreground truncate">
                 {asset.name}
               </h3>
-              {marketStatus && (
-                <Badge
-                  data-testid={`badge-market-status-${asset.id}`}
-                  variant="secondary"
-                  className={`text-xs px-1.5 py-0 ${marketStatus.color}`}
-                >
-                  {marketStatus.status === 'open' ? (
-                    <span className="flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      {marketStatus.label}
-                    </span>
-                  ) : (
-                    marketStatus.label
-                  )}
-                </Badge>
-              )}
+              {/* 카테고리 한국어 표기 (Dashboard에서 넘겨준 값 사용) */}
+              <Badge variant="outline" className="text-[10px] opacity-70">
+                {asset.categoryName || asset.category}
+              </Badge>
             </div>
-            {marketStatus && marketStatus.nextOpenIn && (
-              <p 
-                data-testid={`text-market-countdown-${asset.id}`}
-                className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"
-              >
-                <Clock className="w-3 h-3" />
-                {marketStatus.nextOpenIn}
+            
+            {marketStatus && (
+              <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                {marketStatus.status === 'open' ? (
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                ) : null}
+                {marketStatus.label} {marketStatus.nextOpenIn && `(${marketStatus.nextOpenIn})`}
               </p>
             )}
-            <p 
-              data-testid={`text-asset-price-${asset.id}`}
-              className="text-lg font-bold text-foreground mt-0.5"
-            >
-              {asset.priceDisplay}
-            </p>
-            {asset.buyPriceDisplay && asset.sellPriceDisplay && (
-              <div className="flex gap-3 mt-1 text-sm text-muted-foreground">
-                <span data-testid={`text-buy-price-${asset.id}`}>
-                  살 때 <span className="font-medium text-red-600 dark:text-red-400">{asset.sellPriceDisplay}</span>
-                </span>
-                <span data-testid={`text-sell-price-${asset.id}`}>
-                  팔 때 <span className="font-medium text-green-600 dark:text-green-400">{asset.buyPriceDisplay}</span>
-                </span>
-              </div>
-            )}
           </div>
-          <div className={`p-2 rounded-lg ${styles.iconBg}`}>
-            <WeatherIcon status={asset.status} className="w-8 h-8" />
+          <div className={`p-1.5 rounded-lg ${styles.iconBg}`}>
+            <WeatherIcon status={asset.status} className="w-7 h-7" />
           </div>
         </div>
 
-        <p 
-          data-testid={`text-asset-message-${asset.id}`}
-          className="text-base font-medium text-foreground leading-relaxed"
-        >
-          {asset.message}
-        </p>
+        {/* 중단: 현재 가격 */}
+        <div className="py-1">
+          <p className="text-2xl font-black text-foreground tracking-tight">
+            {asset.price.toLocaleString()}
+            <span className="text-sm font-medium ml-1 opacity-70">{asset.unit}</span>
+          </p>
+        </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge
-            data-testid={`badge-change-${asset.id}`}
-            variant="secondary"
-            className={`text-sm ${
-              isPositive 
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' 
-                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-            }`}
-          >
-            <span className="flex items-center gap-1">
-              {isPositive ? (
-                <TrendingUp className="w-3.5 h-3.5" />
-              ) : (
-                <TrendingDown className="w-3.5 h-3.5" />
-              )}
-              {isPositive ? '+' : ''}{asset.change}%
-            </span>
-          </Badge>
-          <Badge
-            data-testid={`badge-change-points-${asset.id}`}
-            variant="outline"
-            className={`text-sm ${
-              isPositive 
-                ? 'border-green-300 text-green-700 dark:border-green-700 dark:text-green-300' 
-                : 'border-red-300 text-red-700 dark:border-red-700 dark:text-red-300'
-            }`}
-          >
-            {asset.changePointsDisplay}
-          </Badge>
-          {asset.source && asset.changeTimeBasis && (
-            <span 
-              data-testid={`text-source-${asset.id}`}
-              className="text-xs text-muted-foreground"
+        {/* 하단: 변동 정보 및 출처 */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-black/5 dark:border-white/5">
+          <div className="flex items-center gap-2">
+            <Badge
+              className={`text-xs font-bold ${
+                isPositive 
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' 
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+              }`}
             >
-              {asset.source} · {asset.changeTimeBasis}
+              <span className="flex items-center gap-1">
+                {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {isPositive ? '+' : ''}{asset.change}%
+              </span>
+            </Badge>
+            
+            <span className={`text-xs font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {asset.changePointsDisplay}
             </span>
-          )}
+          </div>
+
+          {/* 데이터 출처 및 기준 시점 (요청하신 사항 반영) */}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground/60">
+            <span className="flex items-center gap-1">
+              <Info className="w-3 h-3" />
+              {asset.source}
+            </span>
+            <span>{asset.timeBasis} 기준</span>
+          </div>
         </div>
       </div>
     </Card>
