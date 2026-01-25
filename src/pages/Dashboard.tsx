@@ -34,39 +34,57 @@ const CARD_ORDER_KEY = 'moneyweather_card_order';
 const allCats: AssetCategory[] = ['currency', 'index', 'commodity', 'crypto', 'bonds'];
 const allWeathers: WeatherStatus[] = ['sunny', 'cloudy', 'rainy', 'thunder'];
 
-// 1. 자산별 이름 및 단위 매핑 정보
-const ASSET_CONFIG: Record<string, { name: string; unit: string; cat: AssetCategory }> = {
-  usdkrw: { name: '달러/원 환율', unit: '원', cat: 'currency' },
-  jpykrw: { name: '엔/원 환율', unit: '원', cat: 'currency' },
-  eurkrw: { name: '유로/원 환율', unit: '원', cat: 'currency' },
-  kospi: { name: '코스피 지수', unit: '', cat: 'index' },
-  kosdaq: { name: '코스닥 지수', unit: '', cat: 'index' },
-  nasdaq: { name: '나스닥 지수', unit: '', cat: 'index' },
-  dowjones: { name: '다우존스 지수', unit: '', cat: 'index' },
-  sp500: { name: 'S&P 500', unit: '', cat: 'index' },
-  gold: { name: '국제 금 시세', unit: '달러', cat: 'commodity' },
-  silver: { name: '국제 은 시세', unit: '달러', cat: 'commodity' },
-  gasoline: { name: '국내 휘발유', unit: '원', cat: 'commodity' },
-  diesel: { name: '국내 경유', unit: '원', cat: 'commodity' },
-  bitcoin: { name: '비트코인', unit: '원', cat: 'crypto' },
-  ethereum: { name: '이더리움', unit: '원', cat: 'crypto' },
-  kbrealestate: { name: '전국 주택지수', unit: '', cat: 'index' },
-  bokrate: { name: '한국은행 금리', unit: '%', cat: 'bonds' },
-  bonds: { name: '미 국채 10년', unit: '%', cat: 'bonds' },
-  bonds2y: { name: '미 국채 2년', unit: '%', cat: 'bonds' },
-  krbond3y: { name: '국고채 3년', unit: '%', cat: 'bonds' },
-  krbond10y: { name: '국고채 10년', unit: '%', cat: 'bonds' },
-  cpi: { name: '소비자물가지수', unit: '', cat: 'index' },
-  ppi: { name: '생산자물가지수', unit: '', cat: 'index' },
-  ccsi: { name: '소비자심리지수', unit: '', cat: 'index' },
+// --- [realMarketData.ts의 설정 정보 통합] ---
+const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCategory; messages: Record<WeatherStatus, string> }> = {
+  usdkrw: { 
+    name: '미국 달러', cat: 'currency', 
+    advice: '전일 마감 환율(종가) 기준이에요. 실시간 환율과 다를 수 있어요. 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
+    messages: { sunny: '해외직구 타이밍! 달러가 저렴해요.', rainy: '달러가 비싸요! 환전은 미루세요.', cloudy: '환율이 잠잠해요.', thunder: '환율이 요동치고 있어요!' }
+  },
+  jpykrw: { 
+    name: '일본 엔화', cat: 'currency', 
+    advice: '엔화가 저렴할 때 일본 여행이나 일본 상품 구매를 고려해보세요.',
+    messages: { sunny: '일본 여행 찬스! 엔화가 싸요.', rainy: '엔화가 비싸졌어요.', cloudy: '엔화가 안정적이에요.', thunder: '엔화가 급변하고 있어요!' }
+  },
+  kospi: { 
+    name: '코스피', cat: 'index', 
+    advice: '국내 대형주 중심 지수예요. 시장이 하락할 때는 좋은 기업을 싸게 살 기회일 수 있어요.',
+    messages: { sunny: '코스피가 올라가요! 활기차네요.', rainy: '코스피가 내려갔어요. 바겐세일 중?', cloudy: '코스피가 조용하네요.', thunder: '롤러코스터 주의보!' }
+  },
+  nasdaq: { 
+    name: '나스닥', cat: 'index', 
+    advice: '미국 기술주 중심 지수예요. 변동성이 크지만 성장 잠재력도 높아요.',
+    messages: { sunny: '나스닥이 불타오르고 있어요!', rainy: '나스닥이 쉬어가는 중이에요.', cloudy: '나스닥이 조용하네요.', thunder: '기술주 주의보!' }
+  },
+  bitcoin: { 
+    name: '비트코인', cat: 'crypto', 
+    advice: '변동성이 매우 커요. 잃어도 괜찮은 금액만 투자하고 장기 관점으로 바라보세요.',
+    messages: { sunny: '비트코인이 달리고 있어요!', rainy: '비트코인이 쉬어가는 중.', cloudy: '비트코인이 조용하네요.', thunder: '꽉 잡으세요! 롤러코스터!' }
+  },
+  gasoline: { 
+    name: '휘발유', cat: 'commodity', 
+    advice: '기름값이 오를 때는 급출발, 급가속을 피하면 연비가 10%까지 좋아져요!',
+    messages: { sunny: '휘발유가 저렴해요! 주유 타이밍.', rainy: '휘발유가 비싸요. 대중교통 추천!', cloudy: '가격이 평균이에요.', thunder: '유가가 급변하고 있어요!' }
+  },
+  kbrealestate: { 
+    name: '강남 아파트', cat: 'commodity', 
+    advice: '서울 아파트 시장의 바로미터예요. 금리 인상기에는 집값이 조정되는 경향이 있어요.',
+    messages: { sunny: '집값이 오르고 있어요!', rainy: '집값이 조정 중이에요.', cloudy: '가격이 안정적이에요.', thunder: '크게 움직이고 있어요!' }
+  },
+  bokrate: { 
+    name: '한국 기준금리', cat: 'bonds', 
+    advice: '금리가 오르면 대출 이자가 늘어나고, 예금 이자도 올라요.',
+    messages: { sunny: '금리가 올랐어요!', rainy: '금리가 내렸어요.', cloudy: '금리가 동결됐어요.', thunder: '금리가 급변했어요!' }
+  }
 };
 
-// 2. 변동률에 따른 날씨 결정 로직
-const getWeatherStatus = (change: number): WeatherStatus => {
-  if (change > 1.5) return 'sunny';
-  if (change >= 0) return 'cloudy';
-  if (change > -1.5) return 'rainy';
-  return 'thunder';
+// 날씨 판정 로직
+const calculateStatus = (id: string, price: number, change: number): WeatherStatus => {
+  if (id === 'usdkrw') return price > 1400 ? 'rainy' : price < 1350 ? 'sunny' : 'cloudy';
+  if (Math.abs(change) > 2.5) return 'thunder';
+  if (change > 0.5) return 'sunny';
+  if (change < -0.5) return 'rainy';
+  return 'cloudy';
 };
 
 export default function Dashboard() {
@@ -86,49 +104,43 @@ export default function Dashboard() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // 3. 데이터 로드 및 형식 변환 (기존 기능 복구 핵심)
+  // 1. JSON 데이터 Fetch 및 변환
   const { data, isLoading, isError } = useQuery<MarketDataResponse>({
     queryKey: ['/market-data.json'],
     queryFn: async () => {
       const res = await fetch('/market-data.json');
-      if (!res.ok) throw new Error('데이터 로드 실패');
+      if (!res.ok) throw new Error('로드 실패');
       const rawData = await res.json();
 
       const assets: AssetData[] = rawData.map((item: any) => {
-        const config = ASSET_CONFIG[item.category];
-        const rawPrice = item.payload?.price || 0;
-        const rawChange = item.payload?.change || 0;
+        const id = item.category;
+        const config = ASSET_CONFIGS[id] || { name: id.toUpperCase(), cat: 'index', advice: '시장 상황을 확인하세요.', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } };
+        
+        const price = item.payload?.price || 0;
+        const change = item.payload?.change || 0;
+        const status = calculateStatus(id, price, change);
 
         return {
-          id: item.category,
-          category: config?.cat || 'index',
-          name: config?.name || item.category.toUpperCase(),
-          // 가격 포맷팅: 소수점 오차 제거
-          price: Number(rawPrice.toFixed(rawPrice > 100 ? 0 : 2)),
-          // 변동률 포맷팅: 소수점 2자리 고정
-          change: Number(rawChange.toFixed(2)),
-          status: getWeatherStatus(rawChange),
-          unit: config?.unit || '',
+          id,
+          name: config.name,
+          category: config.cat,
+          price: Number(price.toFixed(price > 100 ? 0 : 2)),
+          change: Number(change.toFixed(2)),
+          status,
+          message: config.messages[status],
+          advice: config.advice,
+          unit: id.includes('krw') || id.includes('gasoline') ? '원' : ''
         };
       });
 
-      return {
-        assets,
-        generatedAt: rawData[0]?.updated_at || new Date().toISOString(),
-      };
+      return { assets, generatedAt: rawData[0]?.updated_at || new Date().toISOString() };
     },
-    refetchInterval: isEditMode ? false : 300000, 
-  });
-
-  const refreshMutation = useMutation({
-    mutationFn: async () => {
-      window.location.reload();
-      return {};
-    },
+    refetchInterval: isEditMode ? false : 300000,
   });
 
   const allAssets = data?.assets || [];
 
+  // 2. 정렬 및 필터링
   const sortedAssets = useMemo(() => {
     if (cardOrder.length === 0) return allAssets;
     const orderMap = new Map(cardOrder.map((id, index) => [id, index]));
@@ -136,163 +148,92 @@ export default function Dashboard() {
   }, [allAssets, cardOrder]);
 
   const assets = sortedAssets.filter(asset => 
-    selectedCategories.includes(asset.category) && 
-    selectedWeathers.includes(asset.status)
+    selectedCategories.includes(asset.category) && selectedWeathers.includes(asset.status)
   );
 
+  // 3. 상태 관리 Effect
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
-    setIsDark(shouldBeDark);
-    document.documentElement.classList.toggle('dark', shouldBeDark);
-
+    setIsDark(savedTheme === 'dark');
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     const savedOrder = localStorage.getItem(CARD_ORDER_KEY);
-    if (savedOrder) {
-      try { setCardOrder(JSON.parse(savedOrder)); } catch (e) { console.error(e); }
-    }
+    if (savedOrder) setCardOrder(JSON.parse(savedOrder));
   }, []);
 
   useEffect(() => {
     if (data?.generatedAt) {
-      setTimeAgo(formatTimeAgo(data.generatedAt));
-      const interval = setInterval(() => setTimeAgo(formatTimeAgo(data.generatedAt)), 10000);
+      const update = () => setTimeAgo(formatTimeAgo(data.generatedAt));
+      update();
+      const interval = setInterval(update, 10000);
       return () => clearInterval(interval);
     }
   }, [data?.generatedAt]);
 
+  // 4. 핸들러 함수
   const handleToggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    document.documentElement.classList.toggle('dark', newIsDark);
-    localStorage.setItem('theme', newIsDark ? 'dark' : 'light');
+    const newDark = !isDark;
+    setIsDark(newDark);
+    document.documentElement.classList.toggle('dark', newDark);
+    localStorage.setItem('theme', newDark ? 'dark' : 'light');
   };
-
-  const handleToggleCategory = (category: AssetCategory) => {
-    setSelectedCategories(prev => prev.length === 1 && prev[0] === category ? allCats : [category]);
-  };
-  
-  const handleSelectAllCategories = () => setSelectedCategories(allCats);
-
-  const handleToggleWeather = (weather: WeatherStatus) => {
-    setSelectedWeathers(prev => prev.length === 1 && prev[0] === weather ? allWeathers : [weather]);
-  };
-
-  const handleSelectAllWeathers = () => setSelectedWeathers(allWeathers);
-  const handleCardClick = (asset: AssetData) => { setSelectedAsset(asset); setIsModalOpen(true); };
-  const handleCloseModal = () => { setIsModalOpen(false); setTimeout(() => setSelectedAsset(null), 200); };
-  const handleRefresh = () => refreshMutation.mutate();
-  const handleToggleEditMode = () => { setIsEditMode(prev => !prev); setActiveId(null); };
-  const handleDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id));
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
     if (over && active.id !== over.id) {
       const currentIds = sortedAssets.map(a => a.id);
-      const oldIndex = currentIds.indexOf(String(active.id));
-      const newIndex = currentIds.indexOf(String(over.id));
-      if (oldIndex !== -1 && newIndex !== -1) {
-        const newOrder = arrayMove(currentIds, oldIndex, newIndex);
-        setCardOrder(newOrder);
-        localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(newOrder));
-      }
+      const newOrder = arrayMove(currentIds, currentIds.indexOf(String(active.id)), currentIds.indexOf(String(over.id)));
+      setCardOrder(newOrder);
+      localStorage.setItem(CARD_ORDER_KEY, JSON.stringify(newOrder));
     }
+    setActiveId(null);
   };
 
-  const activeAsset = activeId ? sortedAssets.find(a => a.id === activeId) : null;
-
-  // 4. 시장 요약 코멘트 로직
   const getSummaryMessage = () => {
-    if (allAssets.length === 0) return '';
     const sunnyCount = allAssets.filter(a => a.status === 'sunny').length;
-    const thunderCount = allAssets.filter(a => a.status === 'thunder').length;
-    
-    if (thunderCount >= 2) return '오늘은 시장이 불안정해요. 신중하게 결정하세요! ⛈️';
     if (sunnyCount >= 3) return '오늘은 좋은 날이에요! 투자하기 괜찮은 분위기네요. ☀️';
-    if (sunnyCount === 0) return '오늘은 조용히 관망하는 게 좋겠어요. ☁️';
+    if (allAssets.some(a => a.status === 'thunder')) return '시장이 불안정해요. 신중하게 결정하세요! ⛈️';
     return '시장이 혼조세예요. 관심 있는 자산을 살펴보세요! ⛅';
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header
-        isDark={isDark}
-        onToggleTheme={handleToggleTheme}
-        onRefresh={handleRefresh}
-        isRefreshing={refreshMutation.isPending}
-        isEditMode={isEditMode}
-        onToggleEditMode={handleToggleEditMode}
-      />
+    <div className="min-h-screen bg-background text-foreground transition-colors">
+      <Header isDark={isDark} onToggleTheme={handleToggleTheme} onRefresh={() => window.location.reload()} isEditMode={isEditMode} onToggleEditMode={() => setIsEditMode(!isEditMode)} />
 
-      <main className="container mx-auto px-4 py-6 space-y-4">
+      <main className="container mx-auto px-4 py-6 space-y-6">
         {data?.generatedAt && (
-          <div data-testid="text-timestamp" className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Clock className="w-4 h-4" />
             <span>{formatTime(data.generatedAt)} 기준 ({timeAgo})</span>
           </div>
         )}
 
-        <div className="space-y-3">
-          <div className="text-center"><span className="text-xs text-muted-foreground">카테고리</span></div>
-          <CategoryFilter selectedCategories={selectedCategories} onToggleCategory={handleToggleCategory} onSelectAll={handleSelectAllCategories} />
-        </div>
+        <CategoryFilter selectedCategories={selectedCategories} onToggleCategory={(c) => setSelectedCategories(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])} onSelectAll={() => setSelectedCategories(allCats)} />
+        <WeatherFilter selectedWeathers={selectedWeathers} onToggleWeather={(w) => setSelectedWeathers(prev => prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w])} onSelectAll={() => setSelectedWeathers(allWeathers)} />
 
-        <div className="space-y-3">
-          <div className="text-center"><span className="text-xs text-muted-foreground">날씨 상태</span></div>
-          <WeatherFilter selectedWeathers={selectedWeathers} onToggleWeather={handleToggleWeather} onSelectAll={handleSelectAllWeathers} />
-        </div>
+        <p className="text-center font-medium">{getSummaryMessage()}</p>
 
-        {allAssets.length > 0 && (
-          <p data-testid="text-summary" className="text-center text-muted-foreground pt-2">
-            {getSummaryMessage()}
-          </p>
-        )}
-
-        {isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />)}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => <div key={i} className="h-40 bg-muted animate-pulse rounded-xl" />)}
           </div>
-        )}
-
-        {isError && (
-          <div className="text-center py-12">
-            <p className="text-destructive">데이터를 불러오는 데 실패했어요. 10분 뒤에 다시 확인해보세요.</p>
-          </div>
-        )}
-
-        {!isLoading && !isError && assets.length > 0 && (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={handleDragEnd}>
             <SortableContext items={assets.map(a => a.id)} strategy={rectSortingStrategy}>
-              {isEditMode && <p className="text-center text-sm text-muted-foreground pb-2">카드를 드래그해서 순서를 변경하세요</p>}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {assets.map((asset) => (
-                  <SortableWeatherCard key={asset.id} asset={asset} onClick={() => handleCardClick(asset)} isEditMode={isEditMode} isDragging={activeId === asset.id} />
+                  <SortableWeatherCard key={asset.id} asset={asset} onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} isEditMode={isEditMode} />
                 ))}
               </div>
             </SortableContext>
             <DragOverlay>
-              {activeAsset ? <WeatherCard asset={activeAsset} onClick={() => {}} /> : null}
+              {activeId ? <WeatherCard asset={sortedAssets.find(a => a.id === activeId)!} onClick={() => {}} /> : null}
             </DragOverlay>
           </DndContext>
         )}
-
-        {!isLoading && !isError && assets.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">선택한 조건에 맞는 자산이 없어요.</p>
-          </div>
-        )}
       </main>
 
-      <DetailModal asset={selectedAsset} open={isModalOpen} onClose={handleCloseModal} />
-
-      <footer className="border-t mt-auto">
-        <div className="container mx-auto px-4 py-4">
-          <p data-testid="text-footer" className="text-center text-xs text-muted-foreground">
-            머니 웨더는 금융 초보자를 위한 정보 제공 서비스입니다. 투자 결정은 신중하게 하세요.
-          </p>
-        </div>
-      </footer>
+      <DetailModal asset={selectedAsset} open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <footer className="py-8 text-center text-xs text-muted-foreground border-t">머니 웨더는 정보 제공 서비스입니다. 투자 결정은 신중하게 하세요.</footer>
     </div>
   );
 }
