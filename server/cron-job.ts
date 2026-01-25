@@ -1,17 +1,15 @@
-// server/cron-job.ts
 import { createClient } from '@supabase/supabase-js';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 export async function runCronJob(isManualRun: boolean = false) {
-  // 1. Supabase 설정
+  // 1. 설정 및 환경 변수 로드
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase 환경변수 누락 (SERVICE_ROLE_KEY 확인 필요)');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
   const getEnv = (key: string): string => process.env[key] || process.env[`VITE_${key}`] || '';
+
+  // Supabase 클라이언트 (기존 로직 유지용, 필요 없으면 제거 가능)
+  const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
   // --- Helper: Fetch with Timeout ---
   async function fetchWithTimeout(url: string, timeout = 15000) {
@@ -96,7 +94,7 @@ export async function runCronJob(isManualRun: boolean = false) {
       if (!target) target = items.find((i: any) => i.CLS_FULLNM?.startsWith('서울'));
       if (!target) return null;
       const priceIndex = parseFloat(target.DTA_VAL);
-      const gangnamPrice = (priceIndex / 100) * 25;
+      const gangnamPrice = (priceIndex / 100) * 25; // 임의 계산 로직 유지
       return { price: gangnamPrice };
     } catch (e) { return null; }
   }
@@ -176,9 +174,32 @@ export async function runCronJob(isManualRun: boolean = false) {
     { category: 'ccsi', payload: ccsi, updated_at: new Date() },
   ];
 
-  const validUpdates = updates.filter(u => u.payload && typeof u.payload.price === 'number');
+  const validUpdates = updates.filter(u => u.payload && (typeof u.payload.price === 'number' || u.payload.gasoline));
+
+  // --- [핵심] JSON 파일 저장 로직 ---
   if (validUpdates.length > 0) {
-    await supabase.from('market_data').upsert(validUpdates);
+    try {
+      const publicDir = path.join(process.cwd(), 'public');
+      await mkdir(publicDir, { recursive: true });
+      
+      const filePath = path.join(publicDir, 'market-data.json');
+      await writeFile(filePath, JSON.stringify(validUpdates, null, 2), 'utf-8');
+      
+      console.log(`✅ 파일 저장 성공: ${filePath}`);
+
+      // Supabase에도 백업 저장 (환경 변수 있을 때만)
+      if (supabase) {
+        await supabase.from('market_data').upsert(validUpdates);
+        console.log("✅ Supabase 동기화 완료");
+      }
+    } catch (err) {
+      console.error("파일 저장 실패:", err);
+    }
   }
-  return { count: validUpdates.length };
+
+  return { 
+    count: validUpdates.length, 
+    success: true, 
+    time: new Date().toISOString() 
+  };
 }
