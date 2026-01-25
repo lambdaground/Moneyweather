@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sun, CloudRain, Cloud, Zap, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Sun, CloudRain, Cloud, Zap, TrendingUp, TrendingDown, Clock, Info } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { AssetData, WeatherStatus } from '@/lib/marketData';
