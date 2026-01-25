@@ -45,41 +45,51 @@ const CATEGORY_NAME_MAP: Record<AssetCategory, string> = {
 // 2. 자산별 상세 설정 통합 (이름, 조언, 출처, 기준 시점)
 const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCategory; source: string; timeBasis: string; messages: Record<WeatherStatus, string> }> = {
   usdkrw: { 
-    name: '미국 달러', cat: 'currency', source: 'ExchangeRate-API', timeBasis: '전일 종가',
-    advice: '환율이 높을 땐 수출 기업 주식이 좋을 수 있어요! 반대로 환율이 낮을 땐 해외여행이나 직구가 유리해요.',
-    messages: { sunny: '해외직구 타이밍! 달러가 저렴해요.', rainy: '달러가 비싸요! 환전은 미루세요.', cloudy: '환율이 잠잠해요.', thunder: '환율이 요동치고 있어요!' }
+    name: '달러/원 환율', cat: 'currency', source: 'ExchangeRate-API', timeBasis: '전일 종가',
+    advice: '환율이 높을 땐 수출 기업 주식이 좋을 수 있어요!',
+    messages: { sunny: '달러가 저렴해요.', rainy: '달러가 비싸요.', cloudy: '잠잠하네요.', thunder: '요동쳐요!' }
   },
   jpykrw: { 
-    name: '일본 엔화', cat: 'currency', source: 'ExchangeRate-API', timeBasis: '실시간',
+    name: '엔/원 환율', cat: 'currency', source: 'ExchangeRate-API', timeBasis: '실시간',
     advice: '엔화가 저렴할 때 일본 여행이나 일본 상품 구매를 고려해보세요.',
-    messages: { sunny: '일본 여행 찬스! 엔화가 싸요.', rainy: '엔화가 비싸졌어요.', cloudy: '엔화가 안정적이에요.', thunder: '엔화가 급변하고 있어요!' }
+    messages: { sunny: '엔화가 싸요!', rainy: '엔화가 비싸졌어요.', cloudy: '안정적이에요.', thunder: '급변하고 있어요!' }
+  },
+  eurkrw: { 
+    name: '유로/원 환율', cat: 'currency', source: 'ExchangeRate-API', timeBasis: '실시간',
+    advice: '유럽 직구나 여행 계획이 있다면 환율을 체크하세요.',
+    messages: { sunny: '유로가 저렴해요.', rainy: '유로가 비싸요.', cloudy: '안정적이에요.', thunder: '급변하고 있어요!' }
   },
   kospi: { 
-    name: '코스피', cat: 'index', source: 'Yahoo Finance', timeBasis: '장 마감',
-    advice: '국내 대형주 중심 지수예요. 시장이 하락할 때는 좋은 기업을 싸게 살 기회일 수 있어요.',
-    messages: { sunny: '코스피가 올라가요! 활기차네요.', rainy: '코스피가 내려갔어요. 바겐세일 중?', cloudy: '코스피가 조용하네요.', thunder: '코스피 롤러코스터 주의보!' }
+    name: '코스피 지수', cat: 'index', source: 'Yahoo Finance', timeBasis: '장 마감',
+    advice: '국내 대형주 중심 지수예요.',
+    messages: { sunny: '코스피 상승 중!', rainy: '코스피 하락 중.', cloudy: '조용하네요.', thunder: '변동성 주의!' }
   },
-  nasdaq: { 
-    name: '나스닥', cat: 'index', source: 'Yahoo Finance', timeBasis: '장 마감',
-    advice: '미국 기술주 중심 지수예요. 변동성이 크지만 성장 잠재력도 높아요.',
-    messages: { sunny: '나스닥이 불타오르고 있어요!', rainy: '나스닥이 쉬어가는 중.', cloudy: '나스닥이 조용하네요.', thunder: '기술주 변동성 주의!' }
+  kosdaq: { 
+    name: '코스닥 지수', cat: 'index', source: 'Yahoo Finance', timeBasis: '장 마감',
+    advice: '중소형주와 기술주 중심의 시장입니다.',
+    messages: { sunny: '코스닥 활기차요!', rainy: '코스닥 약세.', cloudy: '조용하네요.', thunder: '요동치고 있어요!' }
+  },
+  gold: { 
+    name: '국제 금 시세', cat: 'commodity', source: 'Yahoo Finance', timeBasis: '실시간',
+    advice: '금은 경제가 불안할 때 가치가 오르는 대표적인 안전자산입니다.',
+    messages: { sunny: '금값이 올랐어요!', rainy: '금값이 내렸어요.', cloudy: '안정적이에요.', thunder: '금값 요동 중!' }
   },
   bitcoin: { 
     name: '비트코인', cat: 'crypto', source: 'CoinGecko', timeBasis: '24시간 전',
-    advice: '변동성이 매우 커요. 잃어도 괜찮은 금액만 투자하고 장기 관점으로 바라보세요.',
-    messages: { sunny: '비트코인 상승세!', rainy: '비트코인 하락세.', cloudy: '비트코인이 횡보 중.', thunder: '비트코인 롤러코스터!' }
+    advice: '가장 대표적인 가상자산으로 변동성이 매우 큽니다.',
+    messages: { sunny: '비트코인 상승!', rainy: '비트코인 하락.', cloudy: '횡보 중입니다.', thunder: '폭락/폭등 주의!' }
   },
-  gasoline: { 
-    name: '휘발유', cat: 'commodity', source: 'Opinet', timeBasis: '전일 대비',
-    advice: '기름값이 오를 때는 급출발, 급가속을 피하면 연비가 좋아져요!',
-    messages: { sunny: '휘발유가 저렴해요!', rainy: '휘발유 가격 상승 중.', cloudy: '가격이 안정적이에요.', thunder: '유가가 급변하고 있어요!' }
+  bonds: { 
+    name: '미 국채 10년', cat: 'bonds', source: 'Yahoo Finance', timeBasis: '실시간',
+    advice: '미국 국채 금리는 전 세계 금리의 기준이 됩니다.',
+    messages: { sunny: '금리 상승세!', rainy: '금리 하락세.', cloudy: '안정적입니다.', thunder: '금리 급변동!' }
   },
-  krbond3y: { 
-    name: '국고채 3년', cat: 'bonds', source: 'ECOS', timeBasis: '전일 대비',
-    advice: '국고채 금리는 대출 금리의 기준이 됩니다. 금리가 오르면 예금은 유리하지만 대출은 부담돼요.',
-    messages: { sunny: '채권 금리 상승!', rainy: '채권 금리 하락.', cloudy: '안정적인 흐름입니다.', thunder: '금리 급변동 주의!' }
+  bokrate: { 
+    name: '한국 기준금리', cat: 'bonds', source: '한국은행(ECOS)', timeBasis: '최근 발표',
+    advice: '한국은행이 결정하는 정책 금리로 대출 금리에 직접 영향을 줍니다.',
+    messages: { sunny: '금리가 올랐어요!', rainy: '금리가 내렸어요.', cloudy: '금리 동결 중.', thunder: '금리 전격 변동!' }
   }
-  // 추가 자산들은 ASSET_CONFIGS에 같은 형식으로 등록하시면 됩니다.
+  // 필요에 따라 나머지 자산들도 위 형식으로 추가하세요.
 };
 
 export default function Dashboard() {
