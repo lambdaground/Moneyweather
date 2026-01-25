@@ -59,9 +59,11 @@ const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCa
   bonds2y: { name: '미 국채 2년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '연준의 정책 금리에 민감하게 반응합니다.', messages: { sunny: '단기 금리 상승!', rainy: '단기 금리 하락.', cloudy: '잠잠한 흐름.', thunder: '단기 금리 급등!' } },
   krbond3y: { name: '국고채 3년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '국내 단기 금리의 기준이 됩니다.', messages: { sunny: '채권 금리 상승!', rainy: '채권 금리 하락.', cloudy: '보합권입니다.', thunder: '금리 요동 중!' } },
   krbond10y: { name: '국고채 10년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '국내 장기 금리와 주택담보대출에 영향을 줍니다.', messages: { sunny: '장기채 금리 상승!', rainy: '장기채 금리 하락.', cloudy: '안정적 흐름.', thunder: '장기 금리 급변!' } },
-  
+  diesel: { name: '국내 경유', cat: 'commodity', source: 'Opinet', timeBasis: '전일 대비', advice: '화물 운송 등 물류 비용과 직결됩니다.', messages: { sunny: '경유 싸짐!', rainy: '경유 비싸짐!', cloudy: '가격 안정적.', thunder: '경유가 요동!' } },
   gasoline: { name: '국내 휘발유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '기름값이 오르면 물가에 부담이 됩니다.', messages: { sunny: '휘발유 저렴함!', rainy: '휘발유 비쌈!', cloudy: '가격 보통임.', thunder: '유가 급등락!' } },
-  kbrealestate: { name: '전국 주택지수', cat: 'commodity', unit: '', source: '부동산원', timeBasis: '전주 대비', advice: '부동산 시장의 전반적인 분위기를 보여줍니다.', messages: { sunny: '집값 상승세!', rainy: '집값 하향세.', cloudy: '가격 정체기.', thunder: '가격 급변기!' } }
+  kbrealestate: { name: '전국 주택지수', cat: 'commodity', unit: '', source: '부동산원', timeBasis: '전주 대비', advice: '부동산 시장의 전반적인 분위기를 보여줍니다.', messages: { sunny: '집값 상승세!', rainy: '집값 하향세.', cloudy: '가격 정체기.', thunder: '가격 급변기!' } },
+  cpi: { name: '소비자물가(CPI)', cat: 'index', source: 'ECOS', timeBasis: '전월 대비', advice: '내 월급 빼고 다 오르는지 확인하는 지표입니다.', messages: { sunny: '물가 안정 중', rainy: '물가 오름세', cloudy: '보통이에요.', thunder: '인플레 경보!' } },
+  ccsi: { name: '소비자심리(CCSI)', cat: 'index', source: 'ECOS', timeBasis: '전월 대비', advice: '100보다 높으면 경기를 낙관한다는 뜻입니다.', messages: { sunny: '지갑 열기 좋음', rainy: '소비 위축 중', cloudy: '보통이에요.', thunder: '심리 급격 위축' } }
 };
 
 export default function Dashboard() {
