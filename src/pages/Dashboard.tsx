@@ -108,15 +108,21 @@ export default function Dashboard() {
 
         const changeVal = item.payload?.change || 0;
 
-        return {
-          id: cat,
-          category: type,
-          name: nameMap[cat] || cat.toUpperCase(),
-          price: item.payload?.price || 0,
-          change: changeVal,
-          status: getWeatherStatus(changeVal),
-          unit: cat.includes('krw') || cat.includes('fuel') ? '원' : '',
-        };
+        // 숫자를 안전하게 변환하고 소수점 2자리로 고정하는 로직 추가
+const rawPrice = item.payload?.price || 0;
+const rawChange = item.payload?.change || 0;
+
+return {
+  id: cat,
+  category: type,
+  name: nameMap[cat] || cat.toUpperCase(),
+  // 가격: 휘발유나 환율처럼 소수점이 중요한 경우 2자리, 아니면 정수로 표시
+  price: Number(Number(rawPrice).toFixed(cat.includes('krw') ? 0 : 2)),
+  // 변동률: 무조건 소수점 2자리까지 반올림
+  change: Number(Number(rawChange).toFixed(2)), 
+  status: getWeatherStatus(rawChange),
+  unit: cat.includes('krw') || cat.includes('fuel') ? '원' : '',
+};
       });
 
       return {
