@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import {
   DndContext,
@@ -11,6 +11,7 @@ import {
   useSensors,
   DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -40,52 +41,52 @@ const CATEGORY_NAME_MAP: Record<AssetCategory, string> = {
   bonds: '금리'
 };
 
+// [설정] 요청하신 기본 정렬 순서
+const DEFAULT_ORDER = [
+  'kospi', 'kosdaq', 'nasdaq', 'sp500', 'dowjones', // 지수
+  'usdkrw', 'eurkrw', 'jpykrw',                    // 환율
+  'bitcoin', 'ethereum',                           // 코인
+  'gold', 'silver', 'gasoline', 'diesel',          // 원자재
+  'bokrate', 'krbond3y', 'krbond10y', 'bonds2y', 'bonds', 'kbrealestate', 'cpi', 'ccsi' // 금리/기타
+];
+
+// [설정] 각 자산별 카테고리 및 정보 (데이터 누락 방지)
 const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCategory; unit: string; source: string; timeBasis: string; messages: Record<WeatherStatus, string> }> = {
-  // 환율 (Currency)
-  usdkrw: { name: '달러/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '전일 종가', advice: '환율이 높을 땐 수출 기업 주식이 유리할 수 있어요.', messages: { sunny: '달러 저렴', rainy: '달러 비쌈', cloudy: '보통', thunder: '변동 큼' } },
-  jpykrw: { name: '엔/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '엔저일 때 일본 여행을 계획해보세요.', messages: { sunny: '엔화 저렴', rainy: '엔화 비쌈', cloudy: '보통', thunder: '변동 큼' } },
-  eurkrw: { name: '유로/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '유럽 직구 시 유리한 시점을 확인하세요.', messages: { sunny: '유로 저렴', rainy: '유로 비쌈', cloudy: '보통', thunder: '변동 큼' } },
-  cnykrw: { name: '위안/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '중국 경제 상황의 척도입니다.', messages: { sunny: '위안 저렴', rainy: '위안 비쌈', cloudy: '보통', thunder: '변동 큼' } },
-
-  // 지수 (Index)
-  kospi: { name: '코스피 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '국내 대형주 중심의 시장 상황입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
-  kosdaq: { name: '코스닥 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '중소형주와 기술주 중심의 시장입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
-  nasdaq: { name: '나스닥 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 기술주 중심의 시장입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
-  dowjones: { name: '다우존스 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 우량 기업들의 평균 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
-  sp500: { name: 'S&P 500', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 주식 시장의 전반적인 지표입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
-  kbrealestate: { name: '전국 주택지수', cat: 'commodity', unit: '', source: '부동산원', timeBasis: '전주 대비', advice: '부동산 시장의 흐름을 확인하세요.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변' } },
-  cpi: { name: '소비자물가', cat: 'index', unit: '', source: 'ECOS', timeBasis: '전월 대비', advice: '인플레이션 압력을 확인하는 핵심 지표입니다.', messages: { sunny: '물가 안정', rainy: '물가 상승', cloudy: '보통', thunder: '인플레' } },
-  ccsi: { name: '소비자심리', cat: 'index', unit: '점', source: 'ECOS', timeBasis: '전월 대비', advice: '소비자들의 경기 전망을 나타냅니다.', messages: { sunny: '낙관적', rainy: '비관적', cloudy: '보통', thunder: '심리 위축' } },
-  
-
-  // 원자재 (Commodity)
+  // 지수
+  kospi: { name: '코스피 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '국내 대형주 중심 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
+  kosdaq: { name: '코스닥 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '중소형주와 기술주 중심 시장입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
+  nasdaq: { name: '나스닥 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 기술주 중심 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
+  sp500: { name: 'S&P 500', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 시장 전반의 지표입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
+  dowjones: { name: '다우존스 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 우량 기업 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
+  // 환율
+  usdkrw: { name: '달러/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '전일 종가', advice: '환율이 높을 땐 수출 기업이 유리해요.', messages: { sunny: '달러 저렴', rainy: '달러 비쌈', cloudy: '보통', thunder: '변동 큼' } },
+  eurkrw: { name: '유로/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '유럽 직구 시점을 확인하세요.', messages: { sunny: '유로 저렴', rainy: '유로 비쌈', cloudy: '보통', thunder: '변동 큼' } },
+  jpykrw: { name: '엔/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '엔저일 때 일본 여행이 유리해요.', messages: { sunny: '엔화 저렴', rainy: '엔화 비쌈', cloudy: '보통', thunder: '변동 큼' } },
+  // 코인
+  bitcoin: { name: '비트코인', cat: 'crypto', unit: '원', source: 'CoinGecko', timeBasis: '24시간 전', advice: '변동성이 큰 자산입니다.', messages: { sunny: '불장', rainy: '하락장', cloudy: '횡보', thunder: '폭락주의' } },
+  ethereum: { name: '이더리움', cat: 'crypto', unit: '원', source: 'CoinGecko', timeBasis: '24시간 전', advice: '알트코인 대장주입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '횡보', thunder: '급변동' } },
+  // 원자재
   gold: { name: '국제 금 시세', cat: 'commodity', unit: '달러', source: 'Yahoo Finance', timeBasis: '실시간', advice: '대표적인 안전자산입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '요동' } },
-  silver: { name: '국제 은 시세', cat: 'commodity', unit: '달러', source: 'Yahoo Finance', timeBasis: '실시간', advice: '금보다 변동성이 큰 원자재입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '요동' } },
-  gasoline: { name: '국내 휘발유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '유가 변동은 물가에 큰 영향을 줍니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
-  diesel: { name: '국내 경유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '물류 비용과 직결되는 지표입니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
-  
-
-  // 코인 (Crypto)
-  bitcoin: { name: '비트코인', cat: 'crypto', unit: '원', source: 'CoinGecko', timeBasis: '24시간 전', advice: '가장 대표적인 가상자산입니다.', messages: { sunny: '불장', rainy: '하락장', cloudy: '횡보', thunder: '폭락/폭등' } },
-  ethereum: { name: '이더리움', cat: 'crypto', unit: '원', source: 'CoinGecko', timeBasis: '24시간 전', advice: '알트코인의 대장주입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '횡보', thunder: '급변동' } },
-
-  // 금리 (Bonds)
-  bokrate: { name: '한국 기준금리', cat: 'bonds', unit: '%', source: '한국은행', timeBasis: '최근 발표', advice: '모든 시중 금리의 기준이 됩니다.', messages: { sunny: '인상', rainy: '인하', cloudy: '동결', thunder: '빅스텝' } },
-  bonds: { name: '미 국채 10년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '글로벌 장기 금리의 기준점입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
-  bonds2y: { name: '미 국채 2년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '미 연준의 정책 방향을 잘 보여줍니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
-  krbond3y: { name: '국고채 3년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '우리나라 단기 금리의 기준입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
-  krbond10y: { name: '국고채 10년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '국내 장기 금리 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
+  silver: { name: '국제 은 시세', cat: 'commodity', unit: '달러', source: 'Yahoo Finance', timeBasis: '실시간', advice: '은은 산업용 수요도 중요합니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '요동' } },
+  gasoline: { name: '국내 휘발유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '유가 변동은 물가에 영향을 줍니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
+  diesel: { name: '국내 경유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '물류 비용과 직결됩니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
+  // 금리 (주택지수, 물가 포함)
+  bokrate: { name: '한국 기준금리', cat: 'bonds', unit: '%', source: '한국은행', timeBasis: '최근 발표', advice: '대출/예금 금리의 기준입니다.', messages: { sunny: '인상', rainy: '인하', cloudy: '동결', thunder: '빅스텝' } },
+  krbond3y: { name: '국고채 3년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '단기 금리의 기준입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
+  krbond10y: { name: '국고채 10년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '장기 금리 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
+  bonds2y: { name: '미 국채 2년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '미 연준 정책에 민감합니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
+  bonds: { name: '미 국채 10년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '글로벌 장기 금리 기준입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
+  kbrealestate: { name: '전국 주택지수', cat: 'bonds', unit: '', source: '부동산원', timeBasis: '전주 대비', advice: '부동산 시장 흐름 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보합', thunder: '급변' } },
+  cpi: { name: '소비자물가', cat: 'bonds', unit: '', source: 'ECOS', timeBasis: '전월 대비', advice: '인플레이션 핵심 지표입니다.', messages: { sunny: '안정', rainy: '상승', cloudy: '보통', thunder: '인플레' } },
+  ccsi: { name: '소비자심리', cat: 'bonds', unit: '점', source: 'ECOS', timeBasis: '전월 대비', advice: '소비자 경기 전망 지수입니다.', messages: { sunny: '낙관적', rainy: '비관적', cloudy: '보통', thunder: '위축' } },
 };
 
 export default function Dashboard() {
   const [selectedAsset, setSelectedAsset] = useState<AssetData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
-  
-  // 필터 초기값: 처음에는 모두 보여줌
   const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>(allCats);
   const [selectedWeathers, setSelectedWeathers] = useState<WeatherStatus[]>(allWeathers);
-  
   const [timeAgo, setTimeAgo] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [cardOrder, setCardOrder] = useState<string[]>([]);
@@ -97,7 +98,7 @@ export default function Dashboard() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const { data, isLoading } = useQuery<MarketDataResponse>({
+  const { data, isLoading, isError } = useQuery<MarketDataResponse>({
     queryKey: ['/market-data.json'],
     queryFn: async () => {
       const res = await fetch('/market-data.json');
@@ -106,10 +107,9 @@ export default function Dashboard() {
 
       const assets: AssetData[] = rawData.map((item: any) => {
         const id = item.category.toLowerCase();
-        // ASSET_CONFIGS에 정의된 세부 ID가 없으면 카테고리 대분류라도 매칭 시도
         const config = ASSET_CONFIGS[id] || { 
           name: id.toUpperCase(), cat: 'index', unit: '', source: '정보 없음', timeBasis: '실시간',
-          advice: '시장 상황을 확인하세요.', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } 
+          advice: '시장 상황 주시', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } 
         };
         
         const price = item.payload?.price || 0;
@@ -143,13 +143,21 @@ export default function Dashboard() {
 
   const allAssets = data?.assets || [];
 
+  // [정렬] DEFAULT_ORDER 기반 정렬 로직
   const sortedAssets = useMemo(() => {
-    if (cardOrder.length === 0) return allAssets;
-    const orderMap = new Map(cardOrder.map((id, index) => [id, index]));
-    return [...allAssets].sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
+    const baseAssets = [...allAssets];
+    if (cardOrder.length > 0) {
+      const orderMap = new Map(cardOrder.map((id, index) => [id, index]));
+      return baseAssets.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
+    }
+    return baseAssets.sort((a, b) => {
+      const indexA = DEFAULT_ORDER.indexOf(a.id);
+      const indexB = DEFAULT_ORDER.indexOf(b.id);
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+    });
   }, [allAssets, cardOrder]);
 
-  // 필터링 로직: 선택된 카테고리와 날씨 상태가 모두 포함된 것만 반환
+  // [필터링]
   const filteredAssets = useMemo(() => {
     return sortedAssets.filter(asset => 
       selectedCategories.includes(asset.category) && 
@@ -198,18 +206,15 @@ export default function Dashboard() {
         )}
 
         <div className="space-y-4">
-          {/* [수정] 필터 클릭 시 '전체'를 해제하고 선택한 항목 하나만 남도록 로직 수정 */}
+          {/* [핵심] 카테고리 필터 클릭 시 동작 로직 수정 */}
           <CategoryFilter 
             selectedCategories={selectedCategories} 
             onToggleCategory={(c) => {
               setSelectedCategories(prev => {
-                const isAllSelected = prev.length === allCats.length;
-                // 전체가 선택된 상태에서 클릭하거나, 이미 선택된 걸 다시 누르면 해당 항목만 단독 선택
-                if (isAllSelected || prev.includes(c)) {
-                  return [c];
-                } 
-                // 그 외 다중 선택 (필요한 경우 대비)
-                return [...prev, c];
+                // 만약 '전체' 상태이거나, 이미 다른게 많이 선택된 상태에서 하나를 누르면 해당 항목만 선택
+                if (prev.length === allCats.length || !prev.includes(c)) return [c];
+                // 이미 선택된 한 개를 다시 누르면 전체 선택으로 복구 (토글)
+                return allCats;
               });
             }} 
             onSelectAll={() => setSelectedCategories(allCats)} 
@@ -218,11 +223,8 @@ export default function Dashboard() {
             selectedWeathers={selectedWeathers} 
             onToggleWeather={(w) => {
               setSelectedWeathers(prev => {
-                const isAllSelected = prev.length === allWeathers.length;
-                if (isAllSelected || prev.includes(w)) {
-                  return [w];
-                }
-                return [...prev, w];
+                if (prev.length === allWeathers.length || !prev.includes(w)) return [w];
+                return allWeathers;
               });
             }} 
             onSelectAll={() => setSelectedWeathers(allWeathers)} 
@@ -238,12 +240,7 @@ export default function Dashboard() {
             <SortableContext items={filteredAssets.map(a => a.id)} strategy={rectSortingStrategy}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {filteredAssets.map((asset) => (
-                  <SortableWeatherCard 
-                    key={asset.id} 
-                    asset={asset} 
-                    onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} 
-                    isEditMode={isEditMode} 
-                  />
+                  <SortableWeatherCard key={asset.id} asset={asset} onClick={() => { setSelectedAsset(asset); setIsModalOpen(true); }} isEditMode={isEditMode} />
                 ))}
               </div>
             </SortableContext>
@@ -254,9 +251,7 @@ export default function Dashboard() {
         )}
 
         {!isLoading && filteredAssets.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">선택한 조건에 맞는 데이터가 없습니다.</p>
-          </div>
+          <div className="text-center py-12"><p className="text-muted-foreground text-lg">해당 조건의 데이터가 없습니다.</p></div>
         )}
       </main>
 
