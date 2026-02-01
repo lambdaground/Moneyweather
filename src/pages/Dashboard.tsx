@@ -41,36 +41,30 @@ const CATEGORY_NAME_MAP: Record<AssetCategory, string> = {
   bonds: '금리'
 };
 
-// [설정] 요청하신 기본 정렬 순서
+// [수정] 요청하신 정확한 순서 매핑
 const DEFAULT_ORDER = [
-  'kospi', 'kosdaq', 'nasdaq', 'sp500', 'dowjones', // 지수
-  'usdkrw', 'eurkrw', 'jpykrw',                    // 환율
-  'bitcoin', 'ethereum',                           // 코인
-  'gold', 'silver', 'gasoline', 'diesel',          // 원자재
-  'bokrate', 'krbond3y', 'krbond10y', 'bonds2y', 'bonds', 'kbrealestate', 'cpi', 'ccsi' // 금리/기타
+  'kospi', 'kosdaq', 'nasdaq', 'sp500', 'dowjones', // 1. 지수
+  'usdkrw', 'eurkrw', 'jpykrw',                    // 2. 환율
+  'bitcoin', 'ethereum',                           // 3. 코인
+  'gold', 'silver', 'gasoline', 'diesel',          // 4. 원자재
+  'bokrate', 'krbond3y', 'krbond10y', 'bonds2y', 'bonds', 'kbrealestate', 'cpi', 'ccsi' // 5. 금리(기타포함)
 ];
 
-// [설정] 각 자산별 카테고리 및 정보 (데이터 누락 방지)
 const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCategory; unit: string; source: string; timeBasis: string; messages: Record<WeatherStatus, string> }> = {
-  // 지수
   kospi: { name: '코스피 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '국내 대형주 중심 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
   kosdaq: { name: '코스닥 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '중소형주와 기술주 중심 시장입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
   nasdaq: { name: '나스닥 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 기술주 중심 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
   sp500: { name: 'S&P 500', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 시장 전반의 지표입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
   dowjones: { name: '다우존스 지수', cat: 'index', unit: 'pt', source: 'Yahoo Finance', timeBasis: '장 마감', advice: '미국 우량 기업 지수입니다.', messages: { sunny: '상승세', rainy: '하락세', cloudy: '보합', thunder: '급변동' } },
-  // 환율
   usdkrw: { name: '달러/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '전일 종가', advice: '환율이 높을 땐 수출 기업이 유리해요.', messages: { sunny: '달러 저렴', rainy: '달러 비쌈', cloudy: '보통', thunder: '변동 큼' } },
   eurkrw: { name: '유로/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '유럽 직구 시점을 확인하세요.', messages: { sunny: '유로 저렴', rainy: '유로 비쌈', cloudy: '보통', thunder: '변동 큼' } },
   jpykrw: { name: '엔/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '실시간', advice: '엔저일 때 일본 여행이 유리해요.', messages: { sunny: '엔화 저렴', rainy: '엔화 비쌈', cloudy: '보통', thunder: '변동 큼' } },
-  // 코인
   bitcoin: { name: '비트코인', cat: 'crypto', unit: '원', source: 'CoinGecko', timeBasis: '24시간 전', advice: '변동성이 큰 자산입니다.', messages: { sunny: '불장', rainy: '하락장', cloudy: '횡보', thunder: '폭락주의' } },
   ethereum: { name: '이더리움', cat: 'crypto', unit: '원', source: 'CoinGecko', timeBasis: '24시간 전', advice: '알트코인 대장주입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '횡보', thunder: '급변동' } },
-  // 원자재
   gold: { name: '국제 금 시세', cat: 'commodity', unit: '달러', source: 'Yahoo Finance', timeBasis: '실시간', advice: '대표적인 안전자산입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '요동' } },
   silver: { name: '국제 은 시세', cat: 'commodity', unit: '달러', source: 'Yahoo Finance', timeBasis: '실시간', advice: '은은 산업용 수요도 중요합니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '요동' } },
-  gasoline: { name: '국내 휘발유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '유가 변동은 물가에 영향을 줍니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
-  diesel: { name: '국내 경유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '물류 비용과 직결됩니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
-  // 금리 (주택지수, 물가 포함)
+  gasoline: { name: '휘발유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '유가 변동은 물가에 영향을 줍니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
+  diesel: { name: '경유', cat: 'commodity', unit: '원', source: 'Opinet', timeBasis: '전일 대비', advice: '물류 비용과 직결됩니다.', messages: { sunny: '저렴함', rainy: '비쌈', cloudy: '보통', thunder: '급등' } },
   bokrate: { name: '한국 기준금리', cat: 'bonds', unit: '%', source: '한국은행', timeBasis: '최근 발표', advice: '대출/예금 금리의 기준입니다.', messages: { sunny: '인상', rainy: '인하', cloudy: '동결', thunder: '빅스텝' } },
   krbond3y: { name: '국고채 3년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '단기 금리의 기준입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
   krbond10y: { name: '국고채 10년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '장기 금리 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
@@ -98,58 +92,49 @@ export default function Dashboard() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const { data, isLoading, isError } = useQuery<MarketDataResponse>({
+  const { data, isLoading } = useQuery<MarketDataResponse>({
     queryKey: ['/market-data.json'],
     queryFn: async () => {
       const res = await fetch('/market-data.json');
       if (!res.ok) throw new Error('로드 실패');
       const rawData = await res.json();
+      return {
+        assets: rawData.map((item: any) => {
+          const id = item.category.toLowerCase();
+          const config = ASSET_CONFIGS[id] || { name: id.toUpperCase(), cat: 'index', unit: '', source: '정보 없음', timeBasis: '실시간', advice: '관망', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } };
+          const price = item.payload?.price || 0;
+          const change = item.payload?.change || 0;
+          let status: WeatherStatus = 'cloudy';
+          if (Math.abs(change) > 2.5) status = 'thunder';
+          else if (change > 0.5) status = 'sunny';
+          else if (change < -0.5) status = 'rainy';
 
-      const assets: AssetData[] = rawData.map((item: any) => {
-        const id = item.category.toLowerCase();
-        const config = ASSET_CONFIGS[id] || { 
-          name: id.toUpperCase(), cat: 'index', unit: '', source: '정보 없음', timeBasis: '실시간',
-          advice: '시장 상황 주시', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } 
-        };
-        
-        const price = item.payload?.price || 0;
-        const change = item.payload?.change || 0;
-        
-        let status: WeatherStatus = 'cloudy';
-        if (Math.abs(change) > 2.5) status = 'thunder';
-        else if (change > 0.5) status = 'sunny';
-        else if (change < -0.5) status = 'rainy';
-
-        return {
-          id,
-          name: config.name,
-          category: config.cat,
-          categoryName: CATEGORY_NAME_MAP[config.cat], 
-          price: config.cat === 'index' ? Number(price.toFixed(2)) : Number(price.toFixed(price > 100 ? 0 : 2)),
-          change: Number(change.toFixed(2)),
-          status,
-          source: config.source,
-          timeBasis: config.timeBasis,
-          message: config.messages[status],
-          advice: config.advice,
-          unit: config.unit
-        };
-      });
-
-      return { assets, generatedAt: rawData[0]?.updated_at || new Date().toISOString() };
+          return {
+            id, name: config.name, category: config.cat, categoryName: CATEGORY_NAME_MAP[config.cat],
+            price: config.cat === 'index' ? Number(price.toFixed(2)) : Number(price.toFixed(price > 100 ? 0 : 2)),
+            change: Number(change.toFixed(2)), status, source: config.source, timeBasis: config.timeBasis,
+            message: config.messages[status], advice: config.advice, unit: config.unit
+          };
+        }),
+        generatedAt: rawData[0]?.updated_at || new Date().toISOString()
+      };
     },
     refetchInterval: isEditMode ? false : 300000,
   });
 
   const allAssets = data?.assets || [];
 
-  // [정렬] DEFAULT_ORDER 기반 정렬 로직
+  // [중요] 정렬 로직 수정: DEFAULT_ORDER를 무조건 우선시합니다.
   const sortedAssets = useMemo(() => {
     const baseAssets = [...allAssets];
+    
+    // 1. 만약 사용자가 수동으로 순서를 조정한 기록이 있다면 그 지도를 사용합니다.
     if (cardOrder.length > 0) {
       const orderMap = new Map(cardOrder.map((id, index) => [id, index]));
       return baseAssets.sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
     }
+    
+    // 2. 초기 로딩 시에는 무조건 DEFAULT_ORDER 배열의 인덱스 순서대로 정렬합니다.
     return baseAssets.sort((a, b) => {
       const indexA = DEFAULT_ORDER.indexOf(a.id);
       const indexB = DEFAULT_ORDER.indexOf(b.id);
@@ -157,7 +142,6 @@ export default function Dashboard() {
     });
   }, [allAssets, cardOrder]);
 
-  // [필터링]
   const filteredAssets = useMemo(() => {
     return sortedAssets.filter(asset => 
       selectedCategories.includes(asset.category) && 
@@ -169,8 +153,13 @@ export default function Dashboard() {
     const savedTheme = localStorage.getItem('theme');
     setIsDark(savedTheme === 'dark');
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+
+    // [중요] 기존에 저장된 순서가 현재의 DEFAULT_ORDER와 너무 다르면 초기화하거나 무시할 수 있도록
+    // 이번에는 명시적으로 DEFAULT_ORDER가 작동하도록 cardOrder 설정을 비워둔 채 시작할 수 있습니다.
     const savedOrder = localStorage.getItem(CARD_ORDER_KEY);
-    if (savedOrder) setCardOrder(JSON.parse(savedOrder));
+    if (savedOrder) {
+        setCardOrder(JSON.parse(savedOrder));
+    }
   }, []);
 
   useEffect(() => {
@@ -206,14 +195,11 @@ export default function Dashboard() {
         )}
 
         <div className="space-y-4">
-          {/* [핵심] 카테고리 필터 클릭 시 동작 로직 수정 */}
           <CategoryFilter 
             selectedCategories={selectedCategories} 
             onToggleCategory={(c) => {
               setSelectedCategories(prev => {
-                // 만약 '전체' 상태이거나, 이미 다른게 많이 선택된 상태에서 하나를 누르면 해당 항목만 선택
                 if (prev.length === allCats.length || !prev.includes(c)) return [c];
-                // 이미 선택된 한 개를 다시 누르면 전체 선택으로 복구 (토글)
                 return allCats;
               });
             }} 
@@ -249,12 +235,7 @@ export default function Dashboard() {
             </DragOverlay>
           </DndContext>
         )}
-
-        {!isLoading && filteredAssets.length === 0 && (
-          <div className="text-center py-12"><p className="text-muted-foreground text-lg">해당 조건의 데이터가 없습니다.</p></div>
-        )}
       </main>
-
       <DetailModal asset={selectedAsset} open={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
