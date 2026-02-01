@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Clock, Info } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Clock } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -11,7 +11,6 @@ import {
   useSensors,
   DragOverlay,
   type DragEndEvent,
-  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -41,7 +40,6 @@ const CATEGORY_NAME_MAP: Record<AssetCategory, string> = {
   bonds: '금리'
 };
 
-// [수정] 모든 자산 키(ID)를 하나도 빠짐없이 정의하여 카테고리 혼선을 방지합니다.
 const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCategory; unit: string; source: string; timeBasis: string; messages: Record<WeatherStatus, string> }> = {
   // 환율 (Currency)
   usdkrw: { name: '달러/원 환율', cat: 'currency', unit: '원', source: 'ExchangeRate-API', timeBasis: '전일 종가', advice: '환율이 높을 땐 수출 기업 주식이 유리할 수 있어요.', messages: { sunny: '달러 저렴', rainy: '달러 비쌈', cloudy: '보통', thunder: '변동 큼' } },
@@ -82,7 +80,7 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   
-  // 필터 초기값 설정
+  // 필터 초기값: 처음에는 모두 보여줌
   const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>(allCats);
   const [selectedWeathers, setSelectedWeathers] = useState<WeatherStatus[]>(allWeathers);
   
@@ -97,7 +95,7 @@ export default function Dashboard() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const { data, isLoading, isError } = useQuery<MarketDataResponse>({
+  const { data, isLoading } = useQuery<MarketDataResponse>({
     queryKey: ['/market-data.json'],
     queryFn: async () => {
       const res = await fetch('/market-data.json');
@@ -106,7 +104,7 @@ export default function Dashboard() {
 
       const assets: AssetData[] = rawData.map((item: any) => {
         const id = item.category.toLowerCase();
-        // [수정] 설정이 없는 경우에만 기본값 적용, 가급적 모든 ID를 ASSET_CONFIGS에 등록해야 함
+        // ASSET_CONFIGS에 정의된 세부 ID가 없으면 카테고리 대분류라도 매칭 시도
         const config = ASSET_CONFIGS[id] || { 
           name: id.toUpperCase(), cat: 'index', unit: '', source: '정보 없음', timeBasis: '실시간',
           advice: '시장 상황을 확인하세요.', messages: { sunny: '맑음', rainy: '비', cloudy: '흐림', thunder: '번개' } 
@@ -149,7 +147,7 @@ export default function Dashboard() {
     return [...allAssets].sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999));
   }, [allAssets, cardOrder]);
 
-  // [중요] 필터링 로직: 선택된 카테고리만 필터링되도록 보장
+  // 필터링 로직: 선택된 카테고리와 날씨 상태가 모두 포함된 것만 반환
   const filteredAssets = useMemo(() => {
     return sortedAssets.filter(asset => 
       selectedCategories.includes(asset.category) && 
@@ -198,17 +196,18 @@ export default function Dashboard() {
         )}
 
         <div className="space-y-4">
-          {/* [수정] 필터 클릭 시 색상이 변경되도록 토글 로직을 보완했습니다. */}
+          {/* [수정] 필터 클릭 시 '전체'를 해제하고 선택한 항목 하나만 남도록 로직 수정 */}
           <CategoryFilter 
             selectedCategories={selectedCategories} 
             onToggleCategory={(c) => {
               setSelectedCategories(prev => {
-                const isSelected = prev.includes(c);
-                if (isSelected) {
-                   return prev.length === 1 ? allCats : prev.filter(x => x !== c);
-                } else {
-                   return [...prev, c];
-                }
+                const isAllSelected = prev.length === allCats.length;
+                // 전체가 선택된 상태에서 클릭하거나, 이미 선택된 걸 다시 누르면 해당 항목만 단독 선택
+                if (isAllSelected || prev.includes(c)) {
+                  return [c];
+                } 
+                // 그 외 다중 선택 (필요한 경우 대비)
+                return [...prev, c];
               });
             }} 
             onSelectAll={() => setSelectedCategories(allCats)} 
@@ -217,12 +216,11 @@ export default function Dashboard() {
             selectedWeathers={selectedWeathers} 
             onToggleWeather={(w) => {
               setSelectedWeathers(prev => {
-                const isSelected = prev.includes(w);
-                if (isSelected) {
-                  return prev.length === 1 ? allWeathers : prev.filter(x => x !== w);
-                } else {
-                  return [...prev, w];
+                const isAllSelected = prev.length === allWeathers.length;
+                if (isAllSelected || prev.includes(w)) {
+                  return [w];
                 }
+                return [...prev, w];
               });
             }} 
             onSelectAll={() => setSelectedWeathers(allWeathers)} 
