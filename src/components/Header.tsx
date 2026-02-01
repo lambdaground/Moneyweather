@@ -1,5 +1,6 @@
 import { Sun, Moon, RefreshCw, GripVertical, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'wouter'; // 링크 이동을 위해 추가
 
 interface HeaderProps {
   isDark: boolean;
@@ -22,12 +23,15 @@ export default function Header({
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
-          <h1 
-            data-testid="text-app-title"
-            className="text-xl sm:text-2xl font-bold text-foreground"
-          >
-            오늘의 머니 웨더
-          </h1>
+          {/* 타이틀 클릭 시 메인(/)으로 이동하도록 Link 추가 */}
+          <Link href="/">
+            <h1 
+              data-testid="text-app-title"
+              className="text-xl sm:text-2xl font-bold text-foreground cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              오늘의 머니 웨더
+            </h1>
+          </Link>
           
           <div className="flex items-center gap-2">
             {onToggleEditMode && (
