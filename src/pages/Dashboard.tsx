@@ -70,9 +70,9 @@ const ASSET_CONFIGS: Record<string, { name: string; advice: string; cat: AssetCa
   krbond10y: { name: '국고채 10년', cat: 'bonds', unit: '%', source: 'ECOS', timeBasis: '전일 대비', advice: '장기 금리 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
   bonds2y: { name: '미 국채 2년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '미 연준 정책에 민감합니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
   bonds: { name: '미 국채 10년', cat: 'bonds', unit: '%', source: 'Yahoo Finance', timeBasis: '실시간', advice: '글로벌 장기 금리 기준입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보통', thunder: '급변' } },
-  kbrealestate: { name: '전국 주택지수', cat: 'bonds', unit: '', source: '부동산원', timeBasis: '전주 대비', advice: '부동산 시장 흐름 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보합', thunder: '급변' } },
-  cpi: { name: '소비자물가', cat: 'bonds', unit: '', source: 'ECOS', timeBasis: '전월 대비', advice: '인플레이션 핵심 지표입니다.', messages: { sunny: '안정', rainy: '상승', cloudy: '보통', thunder: '인플레' } },
-  ccsi: { name: '소비자심리', cat: 'bonds', unit: '점', source: 'ECOS', timeBasis: '전월 대비', advice: '소비자 경기 전망 지수입니다.', messages: { sunny: '낙관적', rainy: '비관적', cloudy: '보통', thunder: '위축' } },
+  kbrealestate: { name: '전국 주택지수', cat: 'index', unit: '', source: '부동산원', timeBasis: '전주 대비', advice: '부동산 시장 흐름 지표입니다.', messages: { sunny: '상승', rainy: '하락', cloudy: '보합', thunder: '급변' } },
+  cpi: { name: '소비자물가', cat: 'index', unit: '', source: 'ECOS', timeBasis: '전월 대비', advice: '인플레이션 핵심 지표입니다.', messages: { sunny: '안정', rainy: '상승', cloudy: '보통', thunder: '인플레' } },
+  ccsi: { name: '소비자심리', cat: 'index', unit: '점', source: 'ECOS', timeBasis: '전월 대비', advice: '소비자 경기 전망 지수입니다.', messages: { sunny: '낙관적', rainy: '비관적', cloudy: '보통', thunder: '위축' } },
 };
 
 export default function Dashboard() {
