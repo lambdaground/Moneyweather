@@ -3,23 +3,23 @@
     "category": "usdkrw",
     "payload": {
       "price": 1511.05,
-      "change": 0.28169572893729233
+      "change": 0.35641783543944533
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "jpykrw",
     "payload": {
       "price": 946.7731829573936
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "eurkrw",
     "payload": {
       "price": 1757.03488372093
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "kospi",
@@ -27,7 +27,7 @@
       "price": 8801.49,
       "change": 0.14917425054447558
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "kosdaq",
@@ -35,99 +35,139 @@
       "price": 1026.03,
       "change": -4.537588388537401
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "nasdaq",
     "payload": {
-      "price": 27113.062,
-      "change": 0.09692171565872013
+      "price": 27070.832,
+      "change": -0.05898443039193945
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "dowjones",
     "payload": {
-      "price": 51014.08,
-      "change": -0.12686260936025934
+      "price": 51287.79,
+      "change": 0.40899487224466063
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "sp500",
     "payload": {
-      "price": 7602.09,
-      "change": 0.028026463297176687
+      "price": 7606.66,
+      "change": 0.08815835872820144
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "gold",
     "payload": {
-      "price": 4525.2,
-      "change": 0.4194128220491231
+      "price": 4515.2,
+      "change": 0.19750127599138176
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "silver",
     "payload": {
-      "price": 75.765,
-      "change": 0.6790336726286917
+      "price": 75.405,
+      "change": 0.20065378584526566
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "gasoline",
     "payload": {
-      "price": 2010.39
+      "price": 2010.37
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "diesel",
     "payload": {
-      "price": 2005.15
+      "price": 2004.88
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "bitcoin",
     "payload": {
-      "price": 103292472,
-      "change": -4.354622745587731
+      "price": 102324719,
+      "change": -5.227095985292054
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "ethereum",
     "payload": {
-      "price": 2944910,
-      "change": -0.8766351399823374
+      "price": 2909928,
+      "change": -3.0886698666185977
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "kbrealestate",
     "payload": {
       "price": 23.693251318227954
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
+  },
+  {
+    "category": "bokrate",
+    "payload": {
+      "price": 2.5,
+      "change": 0
+    },
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "bonds",
     "payload": {
-      "price": 4.451,
-      "change": -0.5363128491620117
+      "price": 4.453,
+      "change": -0.4916201117318292
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
   },
   {
     "category": "bonds2y",
     "payload": {
-      "price": 3.623,
-      "change": 0.08287016345663299
+      "price": 3.618,
+      "change": -0.05525137968919007
     },
-    "updated_at": "2026-06-02T14:40:05.278Z"
+    "updated_at": "2026-06-02T18:23:41.247Z"
+  },
+  {
+    "category": "krbond3y",
+    "payload": {
+      "price": 3.757,
+      "change": -0.008999999999999897
+    },
+    "updated_at": "2026-06-02T18:23:41.247Z"
+  },
+  {
+    "category": "krbond10y",
+    "payload": {
+      "price": 4.239,
+      "change": 0.02200000000000024
+    },
+    "updated_at": "2026-06-02T18:23:41.247Z"
+  },
+  {
+    "category": "cpi",
+    "payload": {
+      "price": 118.8,
+      "change": 0.3999999999999915
+    },
+    "updated_at": "2026-06-02T18:23:41.247Z"
+  },
+  {
+    "category": "ccsi",
+    "payload": {
+      "price": 107,
+      "change": -5.099999999999994
+    },
+    "updated_at": "2026-06-02T18:23:41.247Z"
   }
 ]
