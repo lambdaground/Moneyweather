@@ -3,23 +3,23 @@
     "category": "usdkrw",
     "payload": {
       "price": 1530.8,
-      "change": -1.2185406245510373
+      "change": -1.1401778834223497
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "jpykrw",
     "payload": {
       "price": 944.1805958181707
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "eurkrw",
     "payload": {
       "price": 1749.4857142857143
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "kospi",
@@ -27,7 +27,7 @@
       "price": 7656.31,
       "change": -4.906270144187352
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "kosdaq",
@@ -35,99 +35,99 @@
       "price": 831.23,
       "change": -4.281387823723811
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "nasdaq",
     "payload": {
-      "price": 26121.16,
-      "change": 1.1167563308975594
+      "price": 25902.246,
+      "change": -0.8380715098410664
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "dowjones",
     "payload": {
-      "price": 53055.91,
-      "change": 0.2945931829579881
+      "price": 53185.34,
+      "change": 0.2439502027200985
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "sp500",
     "payload": {
-      "price": 7537.43,
-      "change": 0.7241515707100201
+      "price": 7518.34,
+      "change": -0.2532693504284636
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "gold",
     "payload": {
-      "price": 4151.9,
-      "change": -0.3743251349730141
+      "price": 4178,
+      "change": 0.2519496100779844
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "silver",
     "payload": {
-      "price": 61.335,
-      "change": -1.5963420503770216
+      "price": 61.755,
+      "change": -0.9225092250922442
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "gasoline",
     "payload": {
       "price": 1891.45
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "diesel",
     "payload": {
       "price": 1878.39
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "bitcoin",
     "payload": {
-      "price": 95481765,
-      "change": -0.8620598006657454
+      "price": 95435075,
+      "change": 1.5081271361939743
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "ethereum",
     "payload": {
-      "price": 2685748,
-      "change": -0.9930573335750206
+      "price": 2677393,
+      "change": 0.8490738006226135
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "kbrealestate",
     "payload": {
       "price": 23.693251318227954
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "bonds",
     "payload": {
-      "price": 4.479,
-      "change": -0.13377258419884117
+      "price": 4.501,
+      "change": 0.491181067202506
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   },
   {
     "category": "bonds2y",
     "payload": {
-      "price": 3.69,
-      "change": 0.5997818974918157
+      "price": 3.725,
+      "change": 0.9485094850948549
     },
-    "updated_at": "2026-07-07T11:31:08.684Z"
+    "updated_at": "2026-07-07T13:38:47.009Z"
   }
 ]
